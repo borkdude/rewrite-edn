@@ -19,3 +19,35 @@
          (str (r/assoc
                (r/parse-string "{:a 1} ;; this is a cool map")
                :a 2)))))
+
+(deftest update-test
+  (is (= "{:a #_:foo 2}"
+         (str (r/update
+               (r/parse-string "{:a #_:foo 1}")
+               :a (fn [node]
+                    (inc (r/sexpr node))))))))
+
+(deftest map-keys-test
+  (is (= "
+{foo/foo 1
+ bar/bar 2}"
+         (str (r/map-keys
+               (fn [sym-node]
+                 (let [sym (r/sexpr sym-node)]
+                   (if (qualified-symbol? sym)
+                     sym-node
+                     (symbol (str sym) (str sym)))))
+               (r/parse-string "
+{foo 1
+ bar 2}"))))))
+
+(defn qualify-sym [sym]
+  (if (qualified-symbol? sym) sym
+      (symbol (str sym) (str sym))))
+
+(deftest update-deps-test
+  (is (= "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}"
+         (str (r/update (r/parse-string "{:deps {foo {:mvn/version \"0.1.0\"}}}")
+                        :deps
+                        (fn [deps-node]
+                          (r/map-keys qualify-sym deps-node)))))))
