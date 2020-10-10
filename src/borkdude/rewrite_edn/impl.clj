@@ -10,8 +10,9 @@
                 (= :uneval (z/tag zloc))))
           zloc))
 
-(defn assoc [node k v]
-  (let [zloc (z/edn node)
+(defn assoc [forms k v]
+  (let [zloc (z/edn forms)
+        zloc (z/skip z/right (fn [zloc] (not= :map (z/tag zloc))) zloc)
         zloc (z/down zloc)
         zloc (skip zloc)]
     (loop [zloc zloc]
