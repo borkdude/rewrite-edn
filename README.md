@@ -15,8 +15,6 @@ Currently implemented. See docstrings in the `borkdude.rewrite-edn` namespace fo
 
 ## Examples
 
-An example: fully qualify deps symbols in `deps.edn`.
-
 Given `deps.edn`:
 
 ``` clojure
@@ -34,10 +32,31 @@ and this script:
 (def edn-string (slurp "deps.edn"))
 
 (def nodes (r/parse-string edn-string))
+```
 
-(println "Before:")
-(println (str nodes))
+### Add dependency
 
+``` clojure
+(def updated-nodes
+  (r/update nodes :deps
+            #(r/assoc % 'my-other-dep
+                      {:mvn/version "0.1.2"}
+                      {:newline true})))
+
+(println (str updated-nodes))
+```
+
+``` clojure
+{:deps {foo {:mvn/version "0.1.0"}
+        bar {:mvn/version "0.2.0"}
+        ;; here's a comment and the next dep is ignored:
+        #_baz #_{:mvn/version "0.3.0"}
+        my-other-dep {:mvn/version "0.1.2"}}}
+```
+
+### Fully qualify dep symbols
+
+``` clojure
 (defn qualify-sym-node [sym-node]
   (let [sym (r/sexpr sym-node)]
     (if (or (not (symbol? sym))
@@ -46,20 +65,10 @@ and this script:
       (symbol (str sym) (str sym)))))
 
 (def updated-nodes (r/update nodes :deps #(r/map-keys qualify-sym-node %)))
-(println "After:")
 (println (str updated-nodes))
 ```
 
-it prints:
-
 ``` clojure
-Before:
-{:deps {foo {:mvn/version "0.1.0"}
-        bar {:mvn/version "0.2.0"}
-        ;; here's a comment and the next dep is ignored:
-        #_baz #_{:mvn/version "0.3.0"}}}
-
-After:
 {:deps {foo/foo {:mvn/version "0.1.0"}
         bar/bar {:mvn/version "0.2.0"}
         ;; here's a comment and the next dep is ignored:

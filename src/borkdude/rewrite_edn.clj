@@ -11,8 +11,11 @@
 (defn sexpr [node]
   (node/sexpr node))
 
-(defn assoc [node k v]
-  (impl/assoc node k v))
+(defn assoc
+  ([node k v]
+   (assoc node k v nil))
+  ([node k v opts]
+   (impl/assoc node k v opts)))
 
 (defn update [node k f]
   (impl/update node k f))

@@ -17,15 +17,26 @@
                  (= :uneval (z/tag zloc)))))
           zloc))
 
-(defn assoc [forms k v]
+(defn prepend-node [zloc {:keys [:newline]} loc]
+  (if newline
+    (let [zloc (-> zloc
+                   (z/insert-space-right (dec (dec (:col loc))))
+                   z/insert-newline-right)]
+      zloc)
+    zloc))
+
+(defn assoc
+  [forms k v opts]
   (let [zloc (z/edn forms)
         zloc (z/skip z/right (fn [zloc] (not= :map (z/tag zloc))) zloc)
         zloc (z/down zloc)
-        zloc (skip-right zloc)]
+        zloc (skip-right zloc)
+        loc (meta (z/node zloc))]
     (loop [zloc zloc]
       (if (z/rightmost? zloc)
         (-> zloc
             (z/insert-right (node/coerce k))
+            (prepend-node opts loc)
             (z/right)
             (z/insert-right (node/coerce v))
             (z/root))
