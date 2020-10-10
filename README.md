@@ -6,33 +6,63 @@ operations to update EDN while preserving whitespace and comments.
 
 ## API
 
-Currently implemented:
+Currently implemented. See docstrings in the `borkdude.rewrite-edn` namespace for details.
 
-- `parse-string`: parses EDN into nodes
-- `assoc`: associates `k` and `v` into first map node found in nodes. Coerces `k` and `v` into node.
+- `parse-string`
+- `assoc`
+- `update`
 
 ## Examples
 
-An example from the tests:
+An example: fully qualify deps symbols in deps.edn.
+
+Given `deps.edn`:
+
+```
+{:deps {foo {:mvn/version "0.1.0"}
+        bar {:mvn/version "0.2.0"}
+        ;; here's a comment and the next dep is ignored:
+        #_baz #_{:mvn/version "0.3.0"}}}
+```
+
+and this script:
 
 ``` clojure
-(deftest assoc-test
-  (is (= "{:a 1 :b 1}"
-         (str (r/assoc
-               (r/parse-string "{:a 1}")
-               :b 1))))
-  (is (= "{:a 2}"
-         (str (r/assoc
-               (r/parse-string "{:a 1}")
-               :a 2))))
-  (is (= "{:a #_:something 2}"
-         (str (r/assoc
-               (r/parse-string "{:a #_:something 1}")
-               :a 2))))
-  (is (= "{:a 2} ;; this is a cool map"
-         (str (r/assoc
-               (r/parse-string "{:a 1} ;; this is a cool map")
-               :a 2)))))
+(require '[borkdude.rewrite-edn :as r])
+
+(def edn-string (slurp "deps.edn"))
+
+(def nodes (r/parse-string edn-string))
+
+(println "Before:")
+(println (str nodes))
+
+(defn qualify-sym-node [sym-node]
+  (let [sym (r/sexpr sym-node)]
+    (if (or (not (symbol? sym))
+            (qualified-symbol? sym))
+      sym-node
+      (symbol (str sym) (str sym)))))
+
+(def updated-nodes (r/update nodes :deps #(r/map-keys qualify-sym-node %)))
+(println "After:")
+(println (str updated-nodes))
+```
+
+it prints:
+
+``` clojure
+Before:
+{:deps {foo {:mvn/version "0.1.0"}
+        bar {:mvn/version "0.2.0"}
+        ;; here's a comment and the next dep is ignored:
+        #_baz #_{:mvn/version "0.3.0"}}}
+
+After:
+{:deps {foo/foo {:mvn/version "0.1.0"}
+        bar/bar {:mvn/version "0.2.0"}
+        ;; here's a comment and the next dep is ignored:
+        #_baz #_{:mvn/version "0.3.0"}}}
 ```
 
 # License
