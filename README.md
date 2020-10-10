@@ -10,7 +10,9 @@ Proof of concept.
 
 ## API
 
-Currently implemented. See docstrings in the `borkdude.rewrite-edn` namespace for details.
+See docstrings in the `borkdude.rewrite-edn` namespace for details.
+
+Currently implemented:
 
 - `parse-string`
 - `assoc`
