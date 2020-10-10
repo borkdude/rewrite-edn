@@ -15,6 +15,7 @@ See docstrings in the `borkdude.rewrite-edn` namespace for details.
 Currently implemented:
 
 - `parse-string`
+- `sexpr`
 - `assoc`
 - `map-vals`
 - `update`
