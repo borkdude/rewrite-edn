@@ -14,11 +14,11 @@ Currently implemented. See docstrings in the `borkdude.rewrite-edn` namespace fo
 
 ## Examples
 
-An example: fully qualify deps symbols in deps.edn.
+An example: fully qualify deps symbols in `deps.edn`.
 
 Given `deps.edn`:
 
-```
+``` clojure
 {:deps {foo {:mvn/version "0.1.0"}
         bar {:mvn/version "0.2.0"}
         ;; here's a comment and the next dep is ignored:
