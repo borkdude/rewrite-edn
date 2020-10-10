@@ -10,6 +10,7 @@ Currently implemented. See docstrings in the `borkdude.rewrite-edn` namespace fo
 
 - `parse-string`
 - `assoc`
+- `map-vals`
 - `update`
 
 ## Examples
