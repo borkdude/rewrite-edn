@@ -64,14 +64,12 @@
 
 (defn map-keys [f forms]
   (let [zloc (z/edn forms)
-        _ (prn :tag (z/sexpr forms) (z/tag forms))
-        #_#_zloc (if (= :map (z/tag forms))
+        zloc (if (= :map (z/tag zloc))
                zloc
                (z/skip right (fn [zloc]
                                (not= :map (z/tag zloc))) zloc))
         zloc (z/down zloc)
         zloc (skip zloc)]
-    (prn :dude (z/sexpr zloc))
     (loop [zloc zloc]
       (if (z/rightmost? zloc)
         (z/root zloc)

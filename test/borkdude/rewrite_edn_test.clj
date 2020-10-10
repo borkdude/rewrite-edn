@@ -43,7 +43,7 @@
   (if (qualified-symbol? sym) sym
       (symbol (str sym) (str sym))))
 
-#_(deftest update-deps-test
+(deftest update-deps-test
   (is (= "
 {:deps {foo/foo {:mvn/version \"0.1.0\"}}}"
          (str (r/update (r/parse-string "{:deps {foo {:mvn/version \"0.1.0\"}}}")
