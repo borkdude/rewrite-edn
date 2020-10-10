@@ -4,6 +4,10 @@ Utility lib on top of
 [rewrite-cljc](https://github.com/lread/rewrite-cljc-playground) with common
 operations to update EDN while preserving whitespace and comments.
 
+## Status
+
+Proof of concept.
+
 ## API
 
 Currently implemented. See docstrings in the `borkdude.rewrite-edn` namespace for details.
