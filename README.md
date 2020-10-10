@@ -15,7 +15,7 @@ Currently implemented:
 
 An example from the tests:
 
-```
+``` clojure
 (deftest assoc-test
   (is (= "{:a 1 :b 1}"
          (str (r/assoc
