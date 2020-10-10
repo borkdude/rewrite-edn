@@ -5,20 +5,34 @@
             [rewrite-cljc.node :as node]
             [rewrite-cljc.parser :as p]))
 
-(defn parse-string [s]
+(defn parse-string
+  "Same as rewrite-cljc.parser/parse-string-all"
+  [s]
   (p/parse-string-all s))
 
-(defn sexpr [node]
+(defn sexpr
+  "Same as rewrite-cljc.node/sexpr"
+  [node]
   (node/sexpr node))
 
 (defn assoc
+  "Associates k to v in node (which may be a forms node as returned by parse-string or map node).
+  Both k and v are coerced into nodes.  Options include: :newline - inserts
+  newline before new key/value pair and indents according to previous key/value
+  pair."
   ([node k v]
    (assoc node k v nil))
   ([node k v opts]
    (impl/assoc node k v opts)))
 
-(defn update [node k f]
+(defn update
+  "Updates value under key k in map node. Function f receives
+  node. Return value is coerced into node."
+  [node k f]
   (impl/update node k f))
 
-(defn map-keys [f node]
+(defn map-keys
+  "Maps f over keys of node (which may be a forms node as returned by
+  parse-string or map node)."
+  [f node]
   (impl/map-keys f node))
