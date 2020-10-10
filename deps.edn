@@ -1,0 +1,10 @@
+{:deps {lread/rewrite-cljc {:git/url "https://github.com/lread/rewrite-cljc-playground"
+                            :sha "ba1e4255cd1c1fd09dbe2e90556bfa66d5459234"}}
+ :aliases {:test
+           {:extra-deps
+            {org.clojure/clojure {:mvn/version "1.9.0"}
+             cognitect/test-runner
+             {:git/url "https://github.com/cognitect-labs/test-runner"
+              :sha "cb96e80f6f3d3b307c59cbeb49bb0dcb3a2a780b"}}
+            :extra-paths ["test"]
+            :main-opts ["-m" "cognitect.test-runner"]}}}
