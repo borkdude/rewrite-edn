@@ -81,7 +81,11 @@
   (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"
          (str (r/update-in (r/parse-string "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}")
                         [:deps 'foo/foo]
-                        #(r/assoc % :mvn/version "0.2.0"))))))
+                        #(r/assoc % :mvn/version "0.2.0")))))
+  (is (= "{:a {:b {:c 1}}}"
+         (str (r/update-in (r/parse-string "{}")
+                           [:a :b :c]
+                           (comp (fnil inc 0) r/sexpr))))))
 
 (deftest assoc-in-test
   (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"

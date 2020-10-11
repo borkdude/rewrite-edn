@@ -30,8 +30,17 @@
 (defn assoc
   [forms k v]
   (let [zloc (z/edn forms)
-        zloc (z/skip z/right (fn [zloc] (not= :map (z/tag zloc))) zloc)
-        empty? (zero? (count (:children (z/node zloc))))]
+        zloc (z/skip z/right (fn [zloc]
+                               (let [t (z/tag zloc)]
+                                 (not (contains? #{:token :map} t))))
+                     zloc)
+        node (z/node zloc)
+        nil? (and (identical? :token (node/tag node))
+                  (nil? (node/sexpr node)))
+        zloc (if nil?
+               (z/replace zloc (node/coerce {}))
+               zloc)
+        empty? (or nil? (zero? (count (:children (z/node zloc)))))]
     (if empty?
       (-> zloc
           (z/append-child (node/coerce k))
@@ -65,13 +74,21 @@
                      (skip-right)))))))))))
 
 (defn update [forms k f]
-  (let [zloc (z/edn (or forms (node/coerce {})))
-        zloc (z/skip z/right (fn [zloc] (not= :map (z/tag zloc))) zloc)
-        empty? (zero? (count (:children (z/node zloc))))]
+  (let [zloc (z/edn forms)
+        zloc (z/skip z/right (fn [zloc]
+                               (let [t (z/tag zloc)]
+                                 (not (contains? #{:token :map} t)))) zloc)
+        node (z/node zloc)
+        nil? (and (identical? :token (node/tag node))
+                  (nil? (node/sexpr node)))
+        zloc (if nil?
+               (z/replace zloc (node/coerce {}))
+               zloc)
+        empty? (or nil? (zero? (count (:children (z/node zloc)))))]
     (if empty?
       (-> zloc
           (z/append-child (node/coerce k))
-          (z/append-child (node/coerce {}))
+          (z/append-child (node/coerce nil))
           (z/root)
           (update k f))
       (let [zloc (z/down zloc)
