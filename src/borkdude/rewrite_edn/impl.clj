@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn.impl
-  (:refer-clojure :exclude [assoc update update-in])
+  (:refer-clojure :exclude [assoc update assoc-in update-in])
   (:require [rewrite-cljc.node :as node]
             [rewrite-cljc.zip :as z]))
 
@@ -78,6 +78,11 @@
   (if (= 1 (count keys))
     (update forms (first keys) f)
     (update forms (first keys) #(update-in % (rest keys) f))))
+
+(defn assoc-in [forms keys v]
+  (if (= 1 (count keys))
+    (assoc forms (first keys) v nil)
+    (update forms (first keys) #(assoc-in % (rest keys) v))))
 
 (defn map-keys [f forms]
   (let [zloc (z/edn forms)

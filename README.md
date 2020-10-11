@@ -17,9 +17,10 @@ Currently implemented:
 - `parse-string`
 - `sexpr`
 - `assoc`
-- `map-vals`
+- `assoc-in`
 - `update`
 - `update-in`
+- `map-vals`
 
 ## Examples
 

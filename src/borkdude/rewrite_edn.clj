@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn
-  (:refer-clojure :exclude [assoc zipmap update update-in])
+  (:refer-clojure :exclude [assoc assoc-in update update-in])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [clojure.core :as c]
             [rewrite-cljc.node :as node]
@@ -24,6 +24,11 @@
    (assoc node k v nil))
   ([node k v opts]
    (impl/assoc node k v opts)))
+
+(defn assoc-in
+  "Associates value under keys ks in map node with v."
+  [node ks v]
+  (impl/assoc-in node ks v))
 
 (defn update
   "Updates value under key k in map node. Function f receives

@@ -55,3 +55,9 @@
          (str (r/update-in (r/parse-string "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}")
                         [:deps 'foo/foo]
                         #(r/assoc % :mvn/version "0.2.0"))))))
+
+(deftest assoc-in-test
+  (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"
+         (str (r/assoc-in (r/parse-string "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}")
+                           [:deps 'foo/foo :mvn/version]
+                           "0.2.0")))))
