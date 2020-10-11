@@ -49,8 +49,7 @@ and this script:
 (def updated-nodes
   (r/update nodes :deps
             #(r/assoc % 'my-other-dep
-                      {:mvn/version "0.1.2"}
-                      {:newline true})))
+                      {:mvn/version "0.1.2"})))
 
 (println (str updated-nodes))
 ```

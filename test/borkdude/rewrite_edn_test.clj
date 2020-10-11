@@ -1,24 +1,51 @@
 (ns borkdude.rewrite-edn-test
   (:require [borkdude.rewrite-edn :as r]
-            [clojure.test :as t :refer [deftest is]]))
+            [clojure.test :as t :refer [deftest testing is]]))
 
 (deftest assoc-test
-  (is (= "{:a 1 :b 1}"
-         (str (r/assoc
-               (r/parse-string "{:a 1}")
-               :b 1))))
-  (is (= "{:a 2}"
-         (str (r/assoc
-               (r/parse-string "{:a 1}")
-               :a 2))))
-  (is (= "{:a #_:something 2}"
-         (str (r/assoc
-               (r/parse-string "{:a #_:something 1}")
-               :a 2))))
-  (is (= "{:a 2} ;; this is a cool map"
-         (str (r/assoc
-               (r/parse-string "{:a 1} ;; this is a cool map")
-               :a 2)))))
+  (testing "Base case"
+    (is (= "{:a 1}"
+           (str (r/assoc
+                 (r/parse-string "{}")
+                 :a 1)))))
+  (testing "When there's only one existing, keys are added on a new line"
+    (is (= "
+{:a 1
+ :b 1}"
+           (str (r/assoc
+                 (r/parse-string "
+{:a 1}")
+                 :b 1)))))
+  (testing "Unless there are already keys on the same line"
+    (is (= "{:a 1 :b 2 :c 3}"
+           (str (r/assoc
+                 (r/parse-string "{:a 1 :b 2}")
+                 :c 3)))))
+  (testing "when map is already multi-line, new keys are added on new line"
+    (is (= "
+{:a 1
+ :b 2}
+;; this is a cool map"
+           (str (r/assoc
+                 (r/parse-string "
+{:a 1}
+;; this is a cool map")
+                 :b 2)))))
+  (testing "Updating existing val"
+    (is (= "{:a 2}"
+           (str (r/assoc
+                 (r/parse-string "{:a 1}")
+                 :a 2)))))
+  (testing "Something between key and val"
+    (is (= "{:a #_:something 2}"
+           (str (r/assoc
+                 (r/parse-string "{:a #_:something 1}")
+                 :a 2)))))
+  (testing "Comment at the end"
+    (is (= "{:a 2} ;; this is a cool map"
+           (str (r/assoc
+                 (r/parse-string "{:a 1} ;; this is a cool map")
+                 :a 2))))))
 
 (deftest update-test
   (is (= "{:a #_:foo 2}"

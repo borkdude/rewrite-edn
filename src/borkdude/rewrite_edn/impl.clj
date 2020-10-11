@@ -17,39 +17,52 @@
                  (= :uneval (z/tag zloc)))))
           zloc))
 
-(defn prepend-node [zloc {:keys [:newline]} loc]
-  (if newline
-    (let [zloc (-> zloc
-                   (z/insert-space-right (dec (dec (:col loc))))
-                   z/insert-newline-right)]
-      zloc)
-    zloc))
+(defn indent [zloc key-count first-key-loc]
+  (let [current-loc (meta (z/node zloc))]
+    (if (or (= 1 key-count)
+            (not= (:row first-key-loc) (:row current-loc)))
+      (let [zloc (-> zloc
+                     (z/insert-space-right (dec (dec (:col first-key-loc))))
+                     z/insert-newline-right)]
+        zloc)
+      zloc)))
 
 (defn assoc
-  [forms k v opts]
+  [forms k v]
   (let [zloc (z/edn forms)
         zloc (z/skip z/right (fn [zloc] (not= :map (z/tag zloc))) zloc)
-        zloc (z/down zloc)
-        zloc (skip-right zloc)
-        loc (meta (z/node zloc))]
-    (loop [zloc zloc]
-      (if (z/rightmost? zloc)
-        (-> zloc
-            (z/insert-right (node/coerce k))
-            (prepend-node opts loc)
-            (z/right)
-            (z/insert-right (node/coerce v))
-            (z/root))
-        (let [current-k (z/sexpr zloc)]
-          (if (= current-k k)
-            (let [zloc (-> zloc (z/right) (skip-right))
-                  zloc (z/replace zloc (node/coerce v))]
-              (z/root zloc))
-            (recur (-> zloc
-                       ;; move over value to next key
-                       (skip-right)
-                       (z/right)
-                       (skip-right)))))))))
+        empty? (zero? (count (:children (z/node zloc))))]
+    (if empty?
+      (-> zloc
+          (z/append-child (node/coerce k))
+          (z/append-child (node/coerce v))
+          (z/root))
+      (let [zloc (z/down zloc)
+            zloc (skip-right zloc)
+            ;; the location of the first key:
+            first-key-loc (when-let [first-key (z/node zloc)]
+                            (meta first-key))]
+        (loop [key-count 0
+               zloc zloc]
+          (if (z/rightmost? zloc)
+            (-> zloc
+                (z/insert-right (node/coerce k))
+                (indent key-count first-key-loc)
+                (z/right)
+                (z/insert-right (node/coerce v))
+                (z/root))
+            (let [current-k (z/sexpr zloc)]
+              (if (= current-k k)
+                (let [zloc (-> zloc (z/right) (skip-right))
+                      zloc (z/replace zloc (node/coerce v))]
+                  (z/root zloc))
+                (recur
+                 (inc key-count)
+                 (-> zloc
+                     ;; move over value to next key
+                     (skip-right)
+                     (z/right)
+                     (skip-right)))))))))))
 
 (defn update [forms k f]
   (let [zloc (z/edn forms)
@@ -81,7 +94,7 @@
 
 (defn assoc-in [forms keys v]
   (if (= 1 (count keys))
-    (assoc forms (first keys) v nil)
+    (assoc forms (first keys) v)
     (update forms (first keys) #(assoc-in % (rest keys) v))))
 
 (defn map-keys [f forms]

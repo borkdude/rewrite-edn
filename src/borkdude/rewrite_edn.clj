@@ -17,13 +17,9 @@
 
 (defn assoc
   "Associates k to v in node (which may be a forms node as returned by parse-string or map node).
-  Both k and v are coerced into nodes.  Options include: :newline - inserts
-  newline before new key/value pair and indents according to previous key/value
-  pair."
+  Both k and v are coerced into nodes."
   ([node k v]
-   (assoc node k v nil))
-  ([node k v opts]
-   (impl/assoc node k v opts)))
+   (impl/assoc node k v)))
 
 (defn assoc-in
   "Associates value under keys ks in map node with v."
