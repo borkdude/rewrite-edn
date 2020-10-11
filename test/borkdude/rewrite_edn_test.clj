@@ -77,21 +77,28 @@
                         (fn [deps-map-node]
                           (r/map-keys qualify-sym-node deps-map-node)))))))
 
-(deftest update-in-test
-  (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"
-         (str (r/update-in (r/parse-string "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}")
-                        [:deps 'foo/foo]
-                        #(r/assoc % :mvn/version "0.2.0")))))
-  (is (= "{:a {:b {:c 1}}}"
-         (str (r/update-in (r/parse-string "{}")
-                           [:a :b :c]
-                           (comp (fnil inc 0) r/sexpr))))))
-
 (deftest assoc-in-test
+  (is (= "{:a {:b {:c 2}}}"
+         (str (r/assoc-in (r/parse-string "{}")
+                          [:a :b :c] 2))))
+  (is (= "{:a {:b {:c 2}}}"
+         (str (r/assoc-in (r/parse-string "nil")
+                          [:a :b :c] 2))))
   (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"
          (str (r/assoc-in (r/parse-string "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}")
                            [:deps 'foo/foo :mvn/version]
-                           "0.2.0"))))
-  (is (= "{:a {:b {:c 2}}}"
-         (str (r/assoc-in (r/parse-string "{}")
-                          [:a :b :c] 2)))))
+                           "0.2.0")))))
+
+(deftest update-in-test
+  (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"
+         (str (r/update-in (r/parse-string "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}")
+                           [:deps 'foo/foo]
+                           #(r/assoc % :mvn/version "0.2.0")))))
+  (is (= "{:a {:b {:c 1}}}"
+         (str (r/update-in (r/parse-string "{}")
+                           [:a :b :c]
+                           (comp (fnil inc 0) r/sexpr)))))
+  (is (= "{:a {:b {:c 1}}}"
+         (str (r/update-in (r/parse-string "nil")
+                           [:a :b :c]
+                           (comp (fnil inc 0) r/sexpr))))))
