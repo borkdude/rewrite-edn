@@ -46,12 +46,7 @@ and this script:
 ### Add dependency
 
 ``` clojure
-(def updated-nodes
-  (r/update nodes :deps
-            #(r/assoc % 'my-other-dep
-                      {:mvn/version "0.1.2"})))
-
-(println (str updated-nodes))
+(println (str (r/assoc-in nodes [:deps 'my-other-dep] {:mvn/version "0.1.2"})))
 ```
 
 ``` clojure
