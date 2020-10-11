@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn
-  (:refer-clojure :exclude [assoc zipmap update])
+  (:refer-clojure :exclude [assoc zipmap update update-in])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [clojure.core :as c]
             [rewrite-cljc.node :as node]
@@ -30,6 +30,12 @@
   node. Return value is coerced into node."
   [node k f]
   (impl/update node k f))
+
+(defn update-in
+  "Updates value under keys ks in map node. Function f receives
+  node. Return value is coerced into node."
+  [node ks f]
+  (impl/update-in node ks f))
 
 (defn map-keys
   "Maps f over keys of node (which may be a forms node as returned by

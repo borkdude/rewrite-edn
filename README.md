@@ -19,6 +19,7 @@ Currently implemented:
 - `assoc`
 - `map-vals`
 - `update`
+- `update-in`
 
 ## Examples
 
