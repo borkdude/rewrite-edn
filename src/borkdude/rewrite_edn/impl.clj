@@ -65,27 +65,34 @@
                      (skip-right)))))))))))
 
 (defn update [forms k f]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/edn (or forms (node/coerce {})))
         zloc (z/skip z/right (fn [zloc] (not= :map (z/tag zloc))) zloc)
-        zloc (z/down zloc)
-        zloc (skip-right zloc)]
-    (loop [zloc zloc]
-      (if (z/rightmost? zloc)
-        (-> zloc
-            (z/insert-right (node/coerce k))
-            (z/right)
-            (z/insert-right (f nil))
-            (z/root))
-        (let [current-k (z/sexpr zloc)]
-          (if (= current-k k)
-            (let [zloc (-> zloc (z/right) (skip-right))
-                  zloc (z/replace zloc (node/coerce (f (z/node zloc))))]
-              (z/root zloc))
-            (recur (-> zloc
-                       ;; move over value to next key
-                       (skip-right)
-                       (z/right)
-                       (skip-right)))))))))
+        empty? (zero? (count (:children (z/node zloc))))]
+    (if empty?
+      (-> zloc
+          (z/append-child (node/coerce k))
+          (z/append-child (node/coerce {}))
+          (z/root)
+          (update k f))
+      (let [zloc (z/down zloc)
+            zloc (skip-right zloc)]
+        (loop [zloc zloc]
+          (if (z/rightmost? zloc)
+            (-> zloc
+                (z/insert-right (node/coerce k))
+                (z/right)
+                (z/insert-right (f nil))
+                (z/root))
+            (let [current-k (z/sexpr zloc)]
+              (if (= current-k k)
+                (let [zloc (-> zloc (z/right) (skip-right))
+                      zloc (z/replace zloc (node/coerce (f (z/node zloc))))]
+                  (z/root zloc))
+                (recur (-> zloc
+                           ;; move over value to next key
+                           (skip-right)
+                           (z/right)
+                           (skip-right)))))))))))
 
 (defn update-in [forms keys f]
   (if (= 1 (count keys))
