@@ -78,6 +78,8 @@ and this script:
         #_baz #_{:mvn/version "0.3.0"}}}
 ```
 
+Also see [examples](examples).
+
 # License
 
 Copyright © 2020 Michiel Borkent
