@@ -2,3 +2,4 @@
 .lein-repl-history
 target
 git
+/pom.xml
