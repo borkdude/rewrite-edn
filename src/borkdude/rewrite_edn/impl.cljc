@@ -1,7 +1,7 @@
 (ns borkdude.rewrite-edn.impl
   (:refer-clojure :exclude [assoc update assoc-in update-in])
-  (:require [rewrite-cljc.node :as node]
-            [rewrite-cljc.zip :as z]))
+  (:require [rewrite-clj.node :as node]
+            [rewrite-clj.zip :as z]))
 
 (defn maybe-right [zloc]
   (if (z/rightmost? zloc)

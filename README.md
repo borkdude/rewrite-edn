@@ -1,7 +1,7 @@
 # rewrite-edn
 
 Utility lib on top of
-[rewrite-cljc](https://github.com/lread/rewrite-cljc-playground) with common
+[rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common
 operations to update EDN while preserving whitespace and comments.
 
 ## Status
