@@ -1,5 +1,4 @@
-{:deps {lread/rewrite-cljc {:git/url "https://github.com/lread/rewrite-cljc-playground"
-                            :sha "ba1e4255cd1c1fd09dbe2e90556bfa66d5459234"}}
+{:deps {rewrite-clj/rewrite-clj {:mvn/version "1.0.572-alpha"}}
  :aliases {:test
            {:extra-deps
             {org.clojure/clojure {:mvn/version "1.9.0"}

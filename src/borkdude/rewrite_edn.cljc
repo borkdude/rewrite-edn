@@ -2,16 +2,16 @@
   (:refer-clojure :exclude [assoc assoc-in update update-in])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [clojure.core :as c]
-            [rewrite-cljc.node :as node]
-            [rewrite-cljc.parser :as p]))
+            [rewrite-clj.node :as node]
+            [rewrite-clj.parser :as p]))
 
 (defn parse-string
-  "Same as rewrite-cljc.parser/parse-string-all"
+  "Same as rewrite-clj.parser/parse-string-all"
   [s]
   (p/parse-string-all s))
 
 (defn sexpr
-  "Same as rewrite-cljc.node/sexpr"
+  "Same as rewrite-clj.node/sexpr"
   [node]
   (node/sexpr node))
 
