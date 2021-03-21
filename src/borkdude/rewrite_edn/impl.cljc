@@ -98,7 +98,7 @@
             (-> zloc
                 (z/insert-right (node/coerce k))
                 (z/right)
-                (z/insert-right (f nil))
+                (z/insert-right (f (node/coerce nil)))
                 (z/root))
             (let [current-k (z/sexpr zloc)]
               (if (= current-k k)
