@@ -1,12 +1,10 @@
 # rewrite-edn
 
+[![Clojars Project](https://img.shields.io/clojars/v/borkdude/rewrite-edn.svg)](https://clojars.org/borkdude/rewrite-edn)
+
 Utility lib on top of
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common
 operations to update EDN while preserving whitespace and comments.
-
-## Status
-
-Proof of concept.
 
 ## API
 
