@@ -18,7 +18,7 @@ Currently implemented:
 - `assoc-in`
 - `update`
 - `update-in`
-- `map-vals`
+- `map-keys`
 
 ## Examples
 
@@ -80,6 +80,6 @@ Also see [examples](examples).
 
 # License
 
-Copyright © 2020 Michiel Borkent
+Copyright © 2021 Michiel Borkent
 
 Distributed under the EPL License, same as Clojure. See LICENSE.
