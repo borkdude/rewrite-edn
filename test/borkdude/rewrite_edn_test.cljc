@@ -104,3 +104,10 @@
          (str (r/update-in (r/parse-string "nil")
                            [:a :b :c]
                            (comp (fnil inc 0) r/sexpr))))))
+
+(deftest dissoc-test
+  (is (= "{}" (str (r/dissoc (r/parse-string "{:a 1}") :a))))
+  (is (= "{:a 1}" (str (r/dissoc (r/parse-string "{:a 1 \n\n:b 2}") :b))))
+  (is (= "{:a 1\n:c 3}" (str (r/dissoc (r/parse-string "{:a 1\n:b 2\n:c 3}") :b))))
+  (is (= "{:deps {foo/bar {}}}" (str (r/update (r/parse-string "{:deps {foo/bar {} foo/baz {}}}")
+                                               :deps #(r/dissoc % 'foo/baz))))))

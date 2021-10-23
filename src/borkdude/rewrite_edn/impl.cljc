@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn.impl
-  (:refer-clojure :exclude [assoc update assoc-in update-in])
+  (:refer-clojure :exclude [assoc update assoc-in update-in dissoc])
   (:require [rewrite-clj.node :as node]
             [rewrite-clj.zip :as z]))
 
@@ -141,3 +141,28 @@
                      (skip-right)
                      maybe-right
                      (skip-right))))))))
+
+(defn dissoc [forms k]
+  (let [zloc (z/edn forms)
+        zloc (z/skip z/right (fn [zloc]
+                               (let [t (z/tag zloc)]
+                                 (not (contains? #{:token :map} t)))) zloc)
+        node (z/node zloc)
+        nil? (and (identical? :token (node/tag node))
+                  (nil? (node/sexpr node)))]
+    (if nil?
+      forms
+      (let [zloc (z/down zloc)
+            zloc (skip-right zloc)]
+        (loop [zloc zloc]
+          (if (z/rightmost? zloc)
+            forms
+            (let [current-k (z/sexpr zloc)]
+              (if (= current-k k)
+                (-> zloc z/right z/remove
+                    z/remove z/root)
+                (recur (-> zloc
+                           ;; move over value to next key
+                           (skip-right)
+                           (z/right)
+                           (skip-right)))))))))))

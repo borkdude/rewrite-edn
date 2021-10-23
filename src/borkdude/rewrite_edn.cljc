@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn
-  (:refer-clojure :exclude [assoc assoc-in update update-in])
+  (:refer-clojure :exclude [assoc assoc-in update update-in dissoc])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [clojure.core :as c]
             [rewrite-clj.node :as node]
@@ -43,3 +43,7 @@
   parse-string or map node)."
   [f node]
   (impl/map-keys f node))
+
+(defn dissoc
+  [node k]
+  (impl/dissoc node k))
