@@ -1,4 +1,4 @@
-(defproject borkdude/rewrite-edn "0.0.2"
+(defproject borkdude/rewrite-edn "0.1.0"
   :description "Rewrite EDN"
   :url "https://github.com/borkdude/rewrite-edn"
   :scm {:name "git"
