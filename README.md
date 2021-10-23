@@ -18,6 +18,7 @@ Currently implemented:
 - `assoc-in`
 - `update`
 - `update-in`
+- `dissoc`
 - `map-keys`
 
 ## Examples
