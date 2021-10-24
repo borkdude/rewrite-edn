@@ -4,3 +4,4 @@ target
 git
 /pom.xml
 .lein-failures
+.cache
