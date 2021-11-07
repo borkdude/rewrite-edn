@@ -50,7 +50,12 @@
     (is (= "[9 8 99 7] ;; this is a cool vector"
            (str (r/assoc
                  (r/parse-string "[9 8 3 7] ;; this is a cool vector")
-                 2 99))))))
+                 2 99)))))
+  (testing "Vector last index assoc"
+    (is (= "[9 8 3 99] ;; this is a cool vector"
+           (str (r/assoc
+                 (r/parse-string "[9 8 3 7] ;; this is a cool vector")
+                 3 99))))))
 
 (deftest update-test
   (is (= "{:a #_:foo 2}"

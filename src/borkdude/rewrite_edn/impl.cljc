@@ -54,7 +54,7 @@
                             (meta first-key))]
         (loop [key-count 0
                zloc zloc]
-          (if (z/rightmost? zloc)
+          (if (and (#{:token :map} tag) (z/rightmost? zloc))
             (-> zloc
                 (z/insert-right (node/coerce k))
                 (indent key-count first-key-loc)
