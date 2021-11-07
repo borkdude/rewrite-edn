@@ -50,6 +50,7 @@
                zloc)
         children (:children (z/node zloc))
         length (count-uncommented-children zloc)
+        out-of-bounds? (and (= :vector tag) (>= k length))
         empty? (or nil? (zero? (count children)))]
     (cond
       empty?
@@ -57,8 +58,7 @@
           (z/append-child (node/coerce k))
           (z/append-child (node/coerce v))
           (z/root))
-      (and (= :vector tag)
-           (>= k length))
+      out-of-bounds?
       (throw (java.lang.IndexOutOfBoundsException.))
       :else
       (let [zloc (z/down zloc)
