@@ -2,6 +2,13 @@
   (:refer-clojure :exclude [assoc update assoc-in update-in dissoc])
   (:require [rewrite-clj.node :as node]
             [rewrite-clj.zip :as z]))
+(defn count-uncommented-children [zloc]
+  (->> (z/node zloc)
+       :children
+       (remove
+        #(or (node/whitespace-or-comment? %)
+             (= :uneval (node/tag %))))
+       count))
 
 (defn maybe-right [zloc]
   (if (z/rightmost? zloc)
@@ -41,7 +48,9 @@
         zloc (if nil?
                (z/replace zloc (node/coerce {}))
                zloc)
-        empty? (or nil? (zero? (count (:children (z/node zloc)))))]
+        children (:children (z/node zloc))
+        length (count-uncommented-children zloc)
+        empty? (or nil? (zero? (count children)))]
     (cond
       empty?
       (-> zloc
@@ -49,7 +58,7 @@
           (z/append-child (node/coerce v))
           (z/root))
       (and (= :vector tag)
-           (> k (-> zloc z/down z/length)))
+           (>= k length))
       (throw (java.lang.IndexOutOfBoundsException.))
       :else
       (let [zloc (z/down zloc)
