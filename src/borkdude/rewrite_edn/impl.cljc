@@ -42,11 +42,16 @@
                (z/replace zloc (node/coerce {}))
                zloc)
         empty? (or nil? (zero? (count (:children (z/node zloc)))))]
-    (if empty?
+    (cond
+      empty?
       (-> zloc
           (z/append-child (node/coerce k))
           (z/append-child (node/coerce v))
           (z/root))
+      (and (= :vector tag)
+           (> k (-> zloc z/down z/length)))
+      (throw (java.lang.IndexOutOfBoundsException.))
+      :else
       (let [zloc (z/down zloc)
             zloc (skip-right zloc)
             ;; the location of the first key:
