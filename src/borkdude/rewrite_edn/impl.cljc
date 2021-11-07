@@ -2,6 +2,13 @@
   (:refer-clojure :exclude [assoc update assoc-in update-in dissoc])
   (:require [rewrite-clj.node :as node]
             [rewrite-clj.zip :as z]))
+(defn count-uncommented-children [zloc]
+  (->> (z/node zloc)
+       :children
+       (remove
+        #(or (node/whitespace-or-comment? %)
+             (= :uneval (node/tag %))))
+       count))
 
 (defn maybe-right [zloc]
   (if (z/rightmost? zloc)
@@ -41,12 +48,19 @@
         zloc (if nil?
                (z/replace zloc (node/coerce {}))
                zloc)
-        empty? (or nil? (zero? (count (:children (z/node zloc)))))]
-    (if empty?
+        children (:children (z/node zloc))
+        length (count-uncommented-children zloc)
+        out-of-bounds? (and (= :vector tag) (>= k length))
+        empty? (or nil? (zero? (count children)))]
+    (cond
+      empty?
       (-> zloc
           (z/append-child (node/coerce k))
           (z/append-child (node/coerce v))
           (z/root))
+      out-of-bounds?
+      (throw (java.lang.IndexOutOfBoundsException.))
+      :else
       (let [zloc (z/down zloc)
             zloc (skip-right zloc)
             ;; the location of the first key:
@@ -54,7 +68,7 @@
                             (meta first-key))]
         (loop [key-count 0
                zloc zloc]
-          (if (z/rightmost? zloc)
+          (if (and (#{:token :map} tag) (z/rightmost? zloc))
             (-> zloc
                 (z/insert-right (node/coerce k))
                 (indent key-count first-key-loc)
