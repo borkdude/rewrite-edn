@@ -14,6 +14,7 @@ Currently implemented:
 
 - `parse-string`
 - `sexpr`
+- `get`
 - `assoc`
 - `assoc-in`
 - `update`
