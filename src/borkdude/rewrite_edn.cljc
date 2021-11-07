@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn
-  (:refer-clojure :exclude [assoc assoc-in update update-in dissoc])
+  (:refer-clojure :exclude [assoc assoc-in update update-in dissoc get])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [clojure.core :as c]
             [rewrite-clj.node :as node]
@@ -20,6 +20,12 @@
   Both k and v are coerced into nodes."
   ([node k v]
    (impl/assoc node k v)))
+
+(defn get
+  "Returns the value mapped to k, default or nil if key not present."
+  ([node k] (get node k (node/coerce nil)))
+  ([node k default]
+   (impl/get node k default)))
 
 (defn assoc-in
   "Associates value under keys ks in map node with v."

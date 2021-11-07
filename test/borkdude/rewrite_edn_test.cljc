@@ -131,3 +131,15 @@
   (is (= "{:a 1\n:c 3}" (str (r/dissoc (r/parse-string "{:a 1\n:b 2\n:c 3}") :b))))
   (is (= "{:deps {foo/bar {}}}" (str (r/update (r/parse-string "{:deps {foo/bar {} foo/baz {}}}")
                                                :deps #(r/dissoc % 'foo/baz))))))
+
+(deftest get-test
+  (is (= "999" (str (r/get (r/parse-string "{:foo/bar 999 :foo 123}") :foo/bar))))
+  (is (= "123" (str (r/get (r/parse-string "{:foo/bar 999 :foo 123}") :foo))))
+  (is (= "nil" (str (r/get (r/parse-string "{:foo/bar 999 :foo 123}") :bar/baz))))
+  (is (= "nil" (str (r/get (r/parse-string "{:foo/bar 999 :foo 123}") :bar/baz nil))))
+  (is (= ":default" (str (r/get (r/parse-string "{:foo/bar 999 :foo 123}") :bar :default))))
+
+  (is (= "99" (str (r/get (r/parse-string "[10 99 100 15]") 1))))
+  (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10))))
+  (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10 nil))))
+  (is (= ":default" (str (r/get (r/parse-string "[10 99 100 15]") 10 :default)))))

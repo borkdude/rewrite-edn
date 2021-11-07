@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn.impl
-  (:refer-clojure :exclude [assoc update assoc-in update-in dissoc])
+  (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc])
   (:require [rewrite-clj.node :as node]
             [rewrite-clj.zip :as z]))
 (defn count-uncommented-children [zloc]
@@ -94,6 +94,45 @@
                      (skip-right)
                      (z/right)
                      (skip-right)))))))))))
+
+(defn get [zloc k default]
+  (let [zloc (z/edn zloc)
+        tag (z/tag zloc)]
+    (cond
+      (= tag :map)
+       (let [node (z/node zloc)
+             nil? (and (identical? :token (node/tag node))
+                       (nil? (node/sexpr node)))
+             zloc (if nil?
+                    (z/replace zloc (node/coerce {}))
+                    zloc)
+             empty? (or nil? (zero? (count (:children (z/node zloc)))))
+             zloc (z/down zloc)
+             zloc (skip-right zloc)]
+         (if empty?
+           :empty
+           (loop [key-count 0
+                  zloc zloc]
+             (if (z/rightmost? zloc)
+               (node/coerce default)
+               (let [current-k (z/sexpr zloc)]
+                 (if (= current-k k)
+                   (-> zloc (z/right) (skip-right) first)
+                   (recur
+                    (inc key-count)
+                    (-> zloc
+                        (skip-right)
+                        (z/right)
+                        (skip-right)))))))))
+      :else
+      (let [coll (some->> (z/down zloc)
+                          (iterate z/right)
+                          (take-while identity)
+                          (remove #(or (node/whitespace-or-comment? %)
+                                       (= :uneval (node/tag %)))))]
+        (if (>= k (count coll))
+          (node/coerce default)
+          (node/coerce (first (nth coll k))))))))
 
 (defn update [forms k f]
   (let [zloc (z/edn forms)
