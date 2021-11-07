@@ -45,7 +45,12 @@
     (is (= "{:a 2} ;; this is a cool map"
            (str (r/assoc
                  (r/parse-string "{:a 1} ;; this is a cool map")
-                 :a 2))))))
+                 :a 2)))))
+  (testing "Vector index assoc"
+    (is (= "[9 8 99 7] ;; this is a cool vector"
+           (str (r/assoc
+                 (r/parse-string "[9 8 3 7] ;; this is a cool vector")
+                 2 99))))))
 
 (deftest update-test
   (is (= "{:a #_:foo 2}"
