@@ -30,9 +30,10 @@
 (defn assoc
   [forms k v]
   (let [zloc (z/edn forms)
+        tag (z/tag zloc)
         zloc (z/skip z/right (fn [zloc]
                                (let [t (z/tag zloc)]
-                                 (not (contains? #{:token :map} t))))
+                                 (not (contains? #{:token :map :vector} t))))
                      zloc)
         node (z/node zloc)
         nil? (and (identical? :token (node/tag node))
@@ -61,10 +62,17 @@
                 (z/insert-right (node/coerce v))
                 (z/root))
             (let [current-k (z/sexpr zloc)]
-              (if (= current-k k)
+              (cond
+                (and (= :vector tag)
+                     (= key-count k))
+                (let [zloc (z/replace zloc (node/coerce v))]
+                  (z/root zloc))
+                (and (#{:token :map} tag)
+                     (= current-k k))
                 (let [zloc (-> zloc (z/right) (skip-right))
                       zloc (z/replace zloc (node/coerce v))]
                   (z/root zloc))
+                :else
                 (recur
                  (inc key-count)
                  (-> zloc
