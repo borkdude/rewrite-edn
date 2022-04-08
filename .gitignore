@@ -5,3 +5,4 @@ git
 /pom.xml
 .lein-failures
 .cache
+.lsp
