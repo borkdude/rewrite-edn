@@ -36,7 +36,7 @@
 
 (defn assoc
   [forms k v]
-  (let [zloc (z/edn forms {:track-position? true})
+  (let [zloc (z/edn forms)
         tag (z/tag zloc)
         zloc (z/skip z/right (fn [zloc]
                                (let [t (z/tag zloc)]
@@ -64,9 +64,8 @@
       (let [zloc (z/down zloc)
             zloc (skip-right zloc)
             ;; the location of the first key:
-            first-key-loc (when (z/node zloc)
-                            (let [[row col] (z/position zloc)]
-                              {:row row :col col}))]
+            first-key-loc (when-let [first-key (z/node zloc)]
+                            (meta first-key))]
         (loop [key-count 0
                zloc zloc]
           (if (and (#{:token :map} tag) (z/rightmost? zloc))

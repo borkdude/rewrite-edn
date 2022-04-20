@@ -65,13 +65,7 @@
     (is (try
           (r/assoc (r/parse-string "[9 8 3 #_99 #_213 7] ;; this is a cool vector") 4 99)
           false
-          (catch java.lang.IndexOutOfBoundsException _ true))))
-  (testing "Chained assoc"
-    (is (= "{:a 1\n :b 2}"
-           (-> (r/parse-string "{}")
-               (r/assoc :a 1)
-               (r/assoc :b 2)
-               str)))))
+          (catch java.lang.IndexOutOfBoundsException _ true)))))
 
 (deftest update-test
   (is (= "{:a #_:foo 2}"
