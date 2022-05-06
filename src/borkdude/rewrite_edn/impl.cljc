@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn.impl
-  (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc])
+  (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc keys])
   (:require [rewrite-clj.node :as node]
             [rewrite-clj.zip :as z]))
 (defn count-uncommented-children [zloc]
@@ -227,3 +227,25 @@
                            (skip-right)
                            (z/right)
                            (skip-right)))))))))))
+
+(defn keys [forms]
+  (let [zloc (z/edn forms)
+        zloc (if (= :map (z/tag zloc))
+               zloc
+               (z/skip z/right (fn [zloc]
+                                 (and (not (z/rightmost zloc))
+                                      (not= :map (z/tag zloc)))) zloc))
+        zloc (z/down zloc)
+        zloc (skip-right zloc)]
+    (loop [zloc zloc
+           ks '()]
+        (if (z/rightmost? zloc)
+          ks
+          (let [k (z/sexpr zloc)]
+            (recur (-> zloc
+                       ;; move over value to next key
+                       z/right
+                       (skip-right)
+                       maybe-right
+                       (skip-right))
+                   (conj ks k)))))))

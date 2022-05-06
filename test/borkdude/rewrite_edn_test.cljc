@@ -143,3 +143,7 @@
   (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10))))
   (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10 nil))))
   (is (= ":default" (str (r/get (r/parse-string "[10 99 100 15]") 10 :default)))))
+
+(deftest keys-test
+  (is (= #{:foo/bar :foo 'baz 'foo/baz 1}
+         (into #{} (r/keys (r/parse-string "{:foo/bar 999 :foo 123 baz 42 foo/baz 23 1 0}"))))))
