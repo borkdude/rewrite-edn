@@ -1,5 +1,5 @@
 (ns borkdude.rewrite-edn
-  (:refer-clojure :exclude [assoc assoc-in update update-in dissoc get])
+  (:refer-clojure :exclude [assoc assoc-in update update-in dissoc get keys])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [clojure.core :as c]
             [rewrite-clj.node :as node]
@@ -53,3 +53,7 @@
 (defn dissoc
   [node k]
   (impl/dissoc node k))
+
+(defn keys
+  [node]
+  (impl/keys node))
