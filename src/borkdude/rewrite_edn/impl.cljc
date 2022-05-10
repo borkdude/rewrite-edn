@@ -1,5 +1,6 @@
 (ns borkdude.rewrite-edn.impl
-  (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc keys])
+  (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc keys
+                            get-in])
   (:require [rewrite-clj.node :as node]
             [rewrite-clj.zip :as z]))
 (defn count-uncommented-children [zloc]
@@ -133,6 +134,17 @@
         (if (>= k (count coll))
           (node/coerce default)
           (node/coerce (first (nth coll k))))))))
+
+(defn get-in [zloc ks not-found]
+  (reduce (fn [zloc k]
+            (if (nil? (node/sexpr zloc))
+              (node/coerce not-found)
+              (let [v (get zloc k ::not-found)]
+                (if (or (= :empty v)
+                        (= ::not-found (node/sexpr v)))
+                  (node/coerce not-found)
+                  v))))
+          zloc ks))
 
 (defn update [forms k f]
   (let [zloc (z/edn forms)
