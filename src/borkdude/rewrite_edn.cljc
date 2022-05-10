@@ -1,5 +1,6 @@
 (ns borkdude.rewrite-edn
-  (:refer-clojure :exclude [assoc assoc-in update update-in dissoc get keys])
+  (:refer-clojure :exclude [assoc assoc-in update update-in dissoc get keys
+                            get-in])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [clojure.core :as c]
             [rewrite-clj.node :as node]
@@ -26,6 +27,14 @@
   ([node k] (get node k (node/coerce nil)))
   ([node k default]
    (impl/get node k default)))
+
+(defn get-in
+  "Returns the value in a nested associative structure,
+  where ks is a sequence of keys. Returns nil if the key
+  is not present, or the not-found value if supplied."
+  ([node ks] (get-in node ks (node/coerce nil)))
+  ([node ks not-found]
+   (impl/get-in node ks not-found)))
 
 (defn assoc-in
   "Associates value under keys ks in map node with v."

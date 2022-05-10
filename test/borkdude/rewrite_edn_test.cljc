@@ -144,10 +144,35 @@
   (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10 nil))))
   (is (= ":default" (str (r/get (r/parse-string "[10 99 100 15]") 10 :default)))))
 
-
 (deftest keys-test
   (is (= #{:foo/bar :foo 'baz 'foo/baz 1}
          (->> (r/parse-string "{:foo/bar 999 :foo 123 baz 42 foo/baz 23 1 0}")
               r/keys
               (map r/sexpr)
               (into #{})))))
+
+(deftest get-in-test
+  (is (= "999" (str (r/get-in (r/parse-string "{:foo/bar 999 :foo 123}")
+                              [:foo/bar]))))
+  (is (= "999" (str (r/get-in (r/parse-string "{:foo/bar {:foo 999}}")
+                              [:foo/bar :foo]))))
+  (is (= "nil" (str (r/get-in (r/parse-string "{:foo/bar {}}")
+                              [:foo/bar :bar/baz]))))
+  (is (= "nil" (str (r/get-in (r/parse-string "{:foo/bar {}}")
+                              [:foo/bar :bar/baz :foo]))))
+  (is (= "nil" (str (r/get-in (r/parse-string "{:foo/bar 999 :foo 123}")
+                              [:bar/baz] nil))))
+  (is (= ":default" (str (r/get-in (r/parse-string "{:foo/bar 999 :foo 123}")
+                                   [:bar] :default))))
+  (is (= "{:foo :bar}" (str (r/get-in (r/parse-string "{:foo :bar}")
+                                   [] :default))))
+
+  (is (= "99" (str (r/get-in (r/parse-string "[10 99 100 15]")
+                             [1]))))
+  (is (= "99" (str (r/get-in (r/parse-string "[10 [0 99] 100 15]")
+                             [1 1]))))
+  (is (= "nil" (str (r/get-in (r/parse-string "[10 99 100 15]") [10]))))
+  (is (= "nil" (str (r/get-in (r/parse-string "[10 [99] 100 15]") [1 10]))))
+  (is (= "nil" (str (r/get-in (r/parse-string "[10 99 100 15]") [10] nil))))
+  (is (= ":default" (str (r/get-in (r/parse-string "[10 99 100 15]")
+                                   [10] :default)))))
