@@ -241,7 +241,7 @@
            ks '()]
         (if (z/rightmost? zloc)
           ks
-          (let [k (first zloc)]
+          (let [k (z/node zloc)]
             (recur (-> zloc
                        ;; move over value to next key
                        z/right
