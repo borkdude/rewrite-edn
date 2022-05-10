@@ -140,7 +140,6 @@
             (if (nil? (node/sexpr zloc))
               (node/coerce not-found)
               (let [v (get zloc k ::not-found)]
-                ;; (prn "v ->" v (= :empty v))
                 (if (or (= :empty v)
                         (= ::not-found (node/sexpr v)))
                   (node/coerce not-found)
