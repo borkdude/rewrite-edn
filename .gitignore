@@ -6,3 +6,4 @@ git
 .lein-failures
 .cache
 .lsp
+.nrepl-port

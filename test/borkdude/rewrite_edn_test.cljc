@@ -5,9 +5,7 @@
 (deftest assoc-test
   (testing "Base case"
     (is (= "{:a 1}"
-           (str (r/assoc
-                 (r/parse-string "{}")
-                 :a 1)))))
+           (str (r/assoc (r/parse-string "{}") :a 1)))))
   (testing "When there's only one existing, keys are added on a new line"
     (is (= "
 {:a 1
@@ -109,7 +107,11 @@
                            [:deps 'foo/foo :mvn/version]
                            "0.2.0"))))
   (is (= "{:a 1 :b {:c 1}}"
-         (str (r/assoc-in (r/parse-string "{:a 1}") [:b :c] 1)))))
+         (str (r/assoc-in (r/parse-string "{:a 1}") [:b :c] 1))))
+  (testing "Repeated assoc-in"
+    (is (str (-> (r/parse-string "{:a 1}")
+                 (r/assoc-in [:b :c] 1)
+                 (r/assoc-in [:b :d] 2))))))
 
 (deftest update-in-test
   (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"

@@ -26,18 +26,18 @@
           zloc))
 
 (defn indent [zloc key-count first-key-loc]
-  (let [current-loc (meta (z/node zloc))]
+  (let [current-loc (z/position zloc)]
     (if (or (= 1 key-count)
-            (not= (:row first-key-loc) (:row current-loc)))
+            (not= (first first-key-loc) (first current-loc)))
       (let [zloc (-> zloc
-                     (z/insert-space-right (dec (dec (:col first-key-loc))))
+                     (z/insert-space-right (dec (dec (second first-key-loc))))
                      z/insert-newline-right)]
         zloc)
       zloc)))
 
 (defn assoc
   [forms k v]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/edn forms {:track-position? true})
         tag (z/tag zloc)
         zloc (z/skip z/right (fn [zloc]
                                (let [t (z/tag zloc)]
@@ -65,8 +65,7 @@
       (let [zloc (z/down zloc)
             zloc (skip-right zloc)
             ;; the location of the first key:
-            first-key-loc (when-let [first-key (z/node zloc)]
-                            (meta first-key))]
+            first-key-loc (z/position zloc)]
         (loop [key-count 0
                zloc zloc]
           (if (and (#{:token :map} tag) (z/rightmost? zloc))
@@ -147,7 +146,7 @@
           zloc ks))
 
 (defn update [forms k f]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/edn forms {:track-position? true})
         zloc (z/skip z/right (fn [zloc]
                                (let [t (z/tag zloc)]
                                  (not (contains? #{:token :map} t)))) zloc)
@@ -195,7 +194,7 @@
     (update forms (first keys) #(assoc-in % (rest keys) v))))
 
 (defn map-keys [f forms]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/edn forms {:track-position? true})
         zloc (if (= :map (z/tag zloc))
                zloc
                (z/skip z/right (fn [zloc]
@@ -216,7 +215,7 @@
                      (skip-right))))))))
 
 (defn dissoc [forms k]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/edn forms {:track-position? true})
         zloc (z/skip z/right (fn [zloc]
                                (let [t (z/tag zloc)]
                                  (not (contains? #{:token :map} t)))) zloc)
@@ -241,7 +240,7 @@
                            (skip-right)))))))))))
 
 (defn keys [forms]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/edn forms {:track-position? true})
         zloc (if (= :map (z/tag zloc))
                zloc
                (z/skip z/right (fn [zloc]
