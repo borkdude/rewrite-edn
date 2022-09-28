@@ -40,7 +40,7 @@
 
 (defn assoc*
   [forms k v]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/of-node forms)
         tag (z/tag zloc)
         zloc (z/skip z/right (fn [zloc]
                                (let [t (z/tag zloc)]
@@ -115,7 +115,7 @@
       mark-for-positional-recalc))
 
 (defn get [zloc k default]
-  (let [zloc (z/edn zloc)
+  (let [zloc (z/of-node zloc)
         tag (z/tag zloc)]
     (cond
       (= tag :map)
@@ -165,7 +165,7 @@
           zloc ks))
 
 (defn update [forms k f]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/of-node forms)
         zloc (z/skip z/right (fn [zloc]
                                (let [t (z/tag zloc)]
                                  (not (contains? #{:token :map} t)))) zloc)
@@ -215,7 +215,7 @@
             (mark-for-positional-recalc)))))
 
 (defn map-keys [f forms]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/of-node forms)
         zloc (if (= :map (z/tag zloc))
                zloc
                (z/skip z/right (fn [zloc]
@@ -236,7 +236,7 @@
                      (skip-right))))))))
 
 (defn dissoc [forms k]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/of-node forms)
         zloc (z/skip z/right (fn [zloc]
                                (let [t (z/tag zloc)]
                                  (not (contains? #{:token :map} t)))) zloc)
@@ -261,7 +261,7 @@
                            (skip-right)))))))))))
 
 (defn keys [forms]
-  (let [zloc (z/edn forms)
+  (let [zloc (z/of-node forms)
         zloc (if (= :map (z/tag zloc))
                zloc
                (z/skip z/right (fn [zloc]
