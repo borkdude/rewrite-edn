@@ -1,4 +1,4 @@
-(ns borkdude.rewrite-edn.impl
+(ns ^:no-doc borkdude.rewrite-edn.impl
   (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc keys
                             get-in])
   (:require [clojure.core :as c]
