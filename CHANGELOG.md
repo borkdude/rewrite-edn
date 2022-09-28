@@ -1,7 +1,8 @@
 # Changelog
 
-## 0.3.0
+## Unreleased
 
+- [#19](https://github.com/borkdude/rewrite-edn/issues/19): Repeated `assoc-in`, `assoc` no longer throw `NullPointerException` ([@lread](https://github.com/lread))
 - Add `keys`
 
 ## 0.2.0

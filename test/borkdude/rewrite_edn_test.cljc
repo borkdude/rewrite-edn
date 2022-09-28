@@ -65,14 +65,29 @@
     (is (try
           (r/assoc (r/parse-string "[9 8 3 #_99 #_213 7] ;; this is a cool vector") 4 99)
           false
-          (catch java.lang.IndexOutOfBoundsException _ true)))))
+          (catch java.lang.IndexOutOfBoundsException _ true))))
+  (testing "Repeated assoc"
+    (is (= (str "{:a 2\n"
+                " :b 3}")
+           (-> "{}"
+               r/parse-string
+               (r/assoc :a 2)
+               (r/assoc :b 3)
+               str)))))
 
 (deftest update-test
   (is (= "{:a #_:foo 2}"
          (str (r/update
                (r/parse-string "{:a #_:foo 1}")
                :a (fn [node]
-                    (inc (r/sexpr node))))))))
+                    (inc (r/sexpr node)))))))
+  ;; unlike assoc, update does not currently indent a new item
+  (is (= "{:a 0 :b 1}"
+         (-> "{}"
+             r/parse-string
+             (r/update :a (constantly 0))
+             (r/update :b (constantly 1))
+             str))))
 
 (defn qualify-sym-node [sym-node]
   (let [sym (r/sexpr sym-node)]
@@ -109,7 +124,14 @@
                            [:deps 'foo/foo :mvn/version]
                            "0.2.0"))))
   (is (= "{:a 1 :b {:c 1}}"
-         (str (r/assoc-in (r/parse-string "{:a 1}") [:b :c] 1)))))
+         (str (r/assoc-in (r/parse-string "{:a 1}") [:b :c] 1))))
+  (is (= (str "{:deps {foo {:mvn/version \"x\"}\n"
+              "        bar {:mvn/version \"y\"}}}")
+         (-> "{}"
+             r/parse-string
+             (r/assoc-in [:deps 'foo] {:mvn/version "x"})
+             (r/assoc-in [:deps 'bar] {:mvn/version "y"})
+             str))))
 
 (deftest update-in-test
   (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"
@@ -123,7 +145,14 @@
   (is (= "{:a {:b {:c 1}}}"
          (str (r/update-in (r/parse-string "nil")
                            [:a :b :c]
-                           (comp (fnil inc 0) r/sexpr))))))
+                           (comp (fnil inc 0) r/sexpr)))))
+  ;; unlike assoc-in, update-in does not currently indent a new item
+  (is (= "{:a {:b {:c 1 :x 1}}}"
+         (-> "{}"
+             r/parse-string
+             (r/update-in [:a :b :c] (comp (fnil inc 0) r/sexpr))
+             (r/update-in [:a :b :x] (comp (fnil inc 0) r/sexpr))
+             str))))
 
 (deftest dissoc-test
   (is (= "{}" (str (r/dissoc (r/parse-string "{:a 1}") :a))))
@@ -176,3 +205,26 @@
   (is (= "nil" (str (r/get-in (r/parse-string "[10 99 100 15]") [10] nil))))
   (is (= ":default" (str (r/get-in (r/parse-string "[10 99 100 15]")
                                    [10] :default)))))
+
+(deftest threaded-test
+  ;; identation continues to work with a mix of threaded operations
+  (is (= (str "{:a {:b 1\n"
+              "     :c 2\n"
+              "     :d 3\n"
+              "     :e 4}\n"
+              " :x 7\n"
+              " :z 9}")
+         (-> "{:a {:b 1}}"
+             r/parse-string
+             (r/assoc :w 6)
+             (r/assoc :x 6)
+             (r/assoc :y 8)
+             (r/dissoc :y)
+             (r/update :x #(-> % r/sexpr inc))
+             (r/assoc :z 9)
+             (r/assoc-in [:a :c] 2)
+             (r/assoc-in [:a :d] 2)
+             (r/dissoc :w)
+             (r/update-in [:a :d] #(-> % r/sexpr inc))
+             (r/assoc-in [:a :e] 4)
+             str))))

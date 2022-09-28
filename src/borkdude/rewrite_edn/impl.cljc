@@ -1,8 +1,11 @@
 (ns borkdude.rewrite-edn.impl
   (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc keys
                             get-in])
-  (:require [rewrite-clj.node :as node]
-            [rewrite-clj.zip :as z]))
+  (:require [clojure.core :as c]
+            [rewrite-clj.node :as node]
+            [rewrite-clj.zip :as z]
+            [rewrite-clj.parser :as p]))
+
 (defn count-uncommented-children [zloc]
   (->> (z/node zloc)
        :children
@@ -35,7 +38,7 @@
         zloc)
       zloc)))
 
-(defn assoc
+(defn assoc*
   [forms k v]
   (let [zloc (z/edn forms)
         tag (z/tag zloc)
@@ -95,6 +98,21 @@
                      (skip-right)
                      (z/right)
                      (skip-right)))))))))))
+
+(defn mark-for-positional-recalc [node]
+  (vary-meta node c/assoc :rewrite-edn/positional-recalc true))
+
+(defn recalc-positional-metadata [node]
+  (if (:rewrite-edn/positional-recalc (meta node))
+    (-> node
+        str
+        p/parse-string-all)
+    node))
+
+(defn assoc [forms k v]
+  (-> (recalc-positional-metadata forms)
+      (assoc* k v)
+      mark-for-positional-recalc))
 
 (defn get [zloc k default]
   (let [zloc (z/edn zloc)
@@ -190,9 +208,11 @@
     (update forms (first keys) #(update-in % (rest keys) f))))
 
 (defn assoc-in [forms keys v]
-  (if (= 1 (count keys))
-    (assoc forms (first keys) v)
-    (update forms (first keys) #(assoc-in % (rest keys) v))))
+  (-> (if (= 1 (count keys))
+        (assoc forms (first keys) v)
+        (-> (recalc-positional-metadata forms)
+            (update (first keys) #(assoc-in % (rest keys) v))
+            (mark-for-positional-recalc)))))
 
 (defn map-keys [f forms]
   (let [zloc (z/edn forms)

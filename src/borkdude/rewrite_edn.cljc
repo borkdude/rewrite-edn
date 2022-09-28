@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [assoc assoc-in update update-in dissoc get keys
                             get-in])
   (:require [borkdude.rewrite-edn.impl :as impl]
-            [clojure.core :as c]
             [rewrite-clj.node :as node]
             [rewrite-clj.parser :as p]))
 
