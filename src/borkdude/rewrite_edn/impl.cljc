@@ -2,7 +2,8 @@
   (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc keys
                             get-in])
   (:require [rewrite-clj.node :as node]
-            [rewrite-clj.zip :as z]))
+            [rewrite-clj.zip :as z]
+            [rewrite-clj.parser :as p]))
 (defn count-uncommented-children [zloc]
   (->> (z/node zloc)
        :children
@@ -35,7 +36,7 @@
         zloc)
       zloc)))
 
-(defn assoc
+(defn assoc*
   [forms k v]
   (let [zloc (z/edn forms)
         tag (z/tag zloc)
@@ -95,6 +96,15 @@
                      (skip-right)
                      (z/right)
                      (skip-right)))))))))))
+
+(defn recalc-positional-metadata [node]
+  (-> node
+      str
+      p/parse-string-all))
+
+(defn assoc [forms k v]
+  (-> (assoc* forms k v)
+      recalc-positional-metadata))
 
 (defn get [zloc k default]
   (let [zloc (z/edn zloc)
@@ -190,9 +200,10 @@
     (update forms (first keys) #(update-in % (rest keys) f))))
 
 (defn assoc-in [forms keys v]
-  (if (= 1 (count keys))
-    (assoc forms (first keys) v)
-    (update forms (first keys) #(assoc-in % (rest keys) v))))
+  (-> (if (= 1 (count keys))
+        (assoc forms (first keys) v)
+        (-> (update forms (first keys) #(assoc-in % (rest keys) v))
+            (recalc-positional-metadata)))))
 
 (defn map-keys [f forms]
   (let [zloc (z/edn forms)
