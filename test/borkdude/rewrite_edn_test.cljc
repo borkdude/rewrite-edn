@@ -205,3 +205,26 @@
   (is (= "nil" (str (r/get-in (r/parse-string "[10 99 100 15]") [10] nil))))
   (is (= ":default" (str (r/get-in (r/parse-string "[10 99 100 15]")
                                    [10] :default)))))
+
+(deftest threaded-test
+  ;; identation continues to work with a mix of threaded operations
+  (is (= (str "{:a {:b 1\n"
+              "     :c 2\n"
+              "     :d 3\n"
+              "     :e 4}\n"
+              " :x 7\n"
+              " :z 9}")
+         (-> "{:a {:b 1}}"
+             r/parse-string
+             (r/assoc :w 6)
+             (r/assoc :x 6)
+             (r/assoc :y 8)
+             (r/dissoc :y)
+             (r/update :x #(-> % r/sexpr inc))
+             (r/assoc :z 9)
+             (r/assoc-in [:a :c] 2)
+             (r/assoc-in [:a :d] 2)
+             (r/dissoc :w)
+             (r/update-in [:a :d] #(-> % r/sexpr inc))
+             (r/assoc-in [:a :e] 4)
+             str))))
