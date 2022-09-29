@@ -4,7 +4,7 @@
 
 - [#20](https://github.com/borkdude/rewrite-edn/issues/20): Bump rewrite-clj to v1.1.45 ([@lread](https://github.com/lread))
 - [#19](https://github.com/borkdude/rewrite-edn/issues/19): Repeated `assoc-in`, `assoc` no longer throw `NullPointerException` ([@lread](https://github.com/lread))
-- Add `keys`
+- Add `keys` and `get-in` ([@witek](https://github.com/witek))
 
 ## 0.2.0
 
