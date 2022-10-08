@@ -63,7 +63,8 @@
           (z/append-child (node/coerce v))
           (z/root))
       out-of-bounds?
-      (throw (java.lang.IndexOutOfBoundsException.))
+      (throw #?(:clj (java.lang.IndexOutOfBoundsException.)
+                :cljs (ex-info "IndexOutOfBounds" {})))
       :else
       (let [zloc (z/down zloc)
             zloc (skip-right zloc)
