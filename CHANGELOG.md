@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+...
+
 ## 0.3.4
 
 - [#20](https://github.com/borkdude/rewrite-edn/issues/20): Bump rewrite-clj to v1.1.45 ([@lread](https://github.com/lread))
