@@ -23,6 +23,7 @@ Currently implemented:
 - `update-in`
 - `dissoc`
 - `map-keys`
+- `conj`
 
 ## Examples
 
