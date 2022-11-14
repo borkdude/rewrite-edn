@@ -1,6 +1,6 @@
 (ns ^:no-doc borkdude.rewrite-edn.impl
   (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc keys
-                            get-in])
+                            get-in conj])
   (:require [clojure.core :as c]
             [rewrite-clj.node :as node]
             [rewrite-clj.zip :as z]
@@ -281,4 +281,27 @@
                        (skip-right)
                        maybe-right
                        (skip-right))
-                   (conj ks k)))))))
+                   (c/conj ks k)))))))
+
+(defn conj* [forms v]
+  (let [zloc (z/of-node forms)
+        node (z/node zloc)
+        tag  (node/tag node)
+        nil? (and (identical? :token tag)
+                  (nil? (node/sexpr node)))]
+    (cond
+      nil? (-> (z/replace zloc (node/coerce (list v)))
+               (z/root))
+      (contains? #{:vector :set} tag) (-> (z/append-child zloc (node/coerce v))
+                                          (z/root))
+      (identical? tag :list) (-> zloc
+                                 (z/insert-child (node/coerce v))
+                                 (z/root))
+      (identical? tag :map) (assoc forms (first v) (second v)) 
+      :else
+      (throw (ex-info "Unsupported forms" {:forms forms})))))
+
+(defn conj [forms v]
+  (-> (recalc-positional-metadata forms)
+      (conj* v)
+      mark-for-positional-recalc))

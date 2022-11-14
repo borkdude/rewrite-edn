@@ -228,3 +228,86 @@
              (r/update-in [:a :d] #(-> % r/sexpr inc))
              (r/assoc-in [:a :e] 4)
              str))))
+
+(deftest conj-test
+  (testing "Update vector"
+    (is (= "; comment \n[1 2 3 4]"
+           (-> "; comment \n[]"
+               (r/parse-string)
+               (r/conj 1)
+               (r/conj 2)
+               (r/conj 3)
+               (r/conj 4)
+               str))
+        "always conj to end of vector"))
+  (testing "Update list" 
+    (is (= "(4 1 2 3)"
+           (-> "()"
+               (r/parse-string)
+               (r/conj 3)
+               (r/conj 2)
+               (r/conj 1)
+               (r/conj 4)
+               str))
+        "always conj to begin of list")) 
+  (testing "Update set"
+    (is (= "#{1 2 3 4}"
+           (-> "#{1 2 3}"
+               (r/parse-string)
+               (r/conj 4)
+               str))))
+  (testing "Update nil"
+    (is (= "(4)"
+           (-> "nil"
+               (r/parse-string)
+               (r/conj 4)
+               str))
+        "produce new list")
+    (is (= "{0 (1)}"
+           (-> "{0 nil}"
+               (r/parse-string)
+               (r/update 0 #(r/conj % 1))
+               str))
+        "produce new list in nested structure"))
+  (testing "Update map"
+    (is (= "{3 4}"
+           (-> "{}"
+               (r/parse-string)
+               (r/conj [3 4])
+               str))
+        "conj should behave like assoc")
+    (is (= "{nil nil}"
+           (-> "{}"
+               (r/parse-string)
+               (r/conj [])
+               (r/conj [])
+               str))))
+  (testing "Update with formatting"
+    (is (= (str "   {3 4\n"
+                "    5 6\n"
+                "    7 8\n"
+                "   }")
+           (-> (str
+                "   {3 4\n"
+                "    5 6\n"
+                "   }")
+               (r/parse-string)
+               (r/conj [7 8])
+               str))))
+  (testing "Combine with update/update-in"
+    (is (= (str "{:a [1 2 3 4]"
+                " :b (2 1)"
+                " :c #{1}}")
+           (-> "{:a [1 2 3]}"
+               (r/parse-string)
+               (r/update :a #(r/conj % 4))
+               (r/update :b #(r/conj % 1))
+               (r/update-in [:b] #(r/conj % 2))
+               (r/conj [:c #{1}])
+               str))))
+  (testing "Update unsupported forms"
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo 
+                          #"Unsupported"
+                          (-> ":k"
+                              (r/parse-string)
+                              (r/conj 1))))))

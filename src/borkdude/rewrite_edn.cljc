@@ -1,6 +1,6 @@
 (ns borkdude.rewrite-edn
   (:refer-clojure :exclude [assoc assoc-in update update-in dissoc get keys
-                            get-in])
+                            get-in conj])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [rewrite-clj.node :as node]
             [rewrite-clj.parser :as p]))
@@ -65,3 +65,7 @@
 (defn keys
   [node]
   (impl/keys node))
+
+(defn conj
+  [node v]
+  (impl/conj node v))
