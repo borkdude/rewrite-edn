@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-...
+- Add `conj` ([@zerg000000](https://github.com/zerg000000))
 
 ## 0.3.4
 
