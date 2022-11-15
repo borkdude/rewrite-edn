@@ -1,6 +1,6 @@
 (ns borkdude.rewrite-edn
   (:refer-clojure :exclude [assoc assoc-in update update-in dissoc get keys
-                            get-in conj])
+                            get-in conj fnil])
   (:require [borkdude.rewrite-edn.impl :as impl]
             [rewrite-clj.node :as node]
             [rewrite-clj.parser :as p]))
@@ -43,14 +43,14 @@
 (defn update
   "Updates value under key k in map node. Function f receives
   node. Return value is coerced into node."
-  [node k f]
-  (impl/update node k f))
+  [node k f & args]
+  (impl/update node k f args))
 
 (defn update-in
   "Updates value under keys ks in map node. Function f receives
   node. Return value is coerced into node."
-  [node ks f]
-  (impl/update-in node ks f))
+  [node ks f & args]
+  (impl/update-in node ks f args))
 
 (defn map-keys
   "Maps f over keys of node (which may be a forms node as returned by
@@ -69,3 +69,7 @@
 (defn conj
   [node v]
   (impl/conj node v))
+
+(defn fnil
+  [f nil-replacement]
+  (impl/fnil f nil-replacement))

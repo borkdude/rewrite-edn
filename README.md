@@ -81,10 +81,17 @@ and this script:
         #_baz #_{:mvn/version "0.3.0"}}}
 ```
 
+### Conj + fnil
+
+``` clojure
+(str (r/update (r/parse-string "{:a [1 2 3]}") :b (r/fnil r/conj []) 1))
+;;=> "{:a [1 2 3] :b [1]}
+```
+
 Also see [examples](examples).
 
 # License
 
-Copyright © 2021 Michiel Borkent
+Copyright © 2021 - 2022 Michiel Borkent
 
 Distributed under the EPL License, same as Clojure. See LICENSE.

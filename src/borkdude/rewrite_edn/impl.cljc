@@ -1,10 +1,11 @@
 (ns ^:no-doc borkdude.rewrite-edn.impl
   (:refer-clojure :exclude [get assoc update assoc-in update-in dissoc keys
-                            get-in conj])
-  (:require [clojure.core :as c]
-            [rewrite-clj.node :as node]
-            [rewrite-clj.zip :as z]
-            [rewrite-clj.parser :as p]))
+                            get-in conj fnil])
+  (:require
+   [clojure.core :as c]
+   [rewrite-clj.node :as node]
+   [rewrite-clj.parser :as p]
+   [rewrite-clj.zip :as z]))
 
 (defn count-uncommented-children [zloc]
   (->> (z/node zloc)
@@ -120,30 +121,30 @@
         tag (z/tag zloc)]
     (cond
       (= tag :map)
-       (let [node (z/node zloc)
-             nil? (and (identical? :token (node/tag node))
-                       (nil? (node/sexpr node)))
-             zloc (if nil?
-                    (z/replace zloc (node/coerce {}))
-                    zloc)
-             empty? (or nil? (zero? (count (:children (z/node zloc)))))
-             zloc (z/down zloc)
-             zloc (skip-right zloc)]
-         (if empty?
-           :empty
-           (loop [key-count 0
-                  zloc zloc]
-             (if (z/rightmost? zloc)
-               (node/coerce default)
-               (let [current-k (z/sexpr zloc)]
-                 (if (= current-k k)
-                   (-> zloc (z/right) (skip-right) first)
-                   (recur
-                    (inc key-count)
-                    (-> zloc
-                        (skip-right)
-                        (z/right)
-                        (skip-right)))))))))
+      (let [node (z/node zloc)
+            nil? (and (identical? :token (node/tag node))
+                      (nil? (node/sexpr node)))
+            zloc (if nil?
+                   (z/replace zloc (node/coerce {}))
+                   zloc)
+            empty? (or nil? (zero? (count (:children (z/node zloc)))))
+            zloc (z/down zloc)
+            zloc (skip-right zloc)]
+        (if empty?
+          :empty
+          (loop [key-count 0
+                 zloc zloc]
+            (if (z/rightmost? zloc)
+              (node/coerce default)
+              (let [current-k (z/sexpr zloc)]
+                (if (= current-k k)
+                  (-> zloc (z/right) (skip-right) first)
+                  (recur
+                   (inc key-count)
+                   (-> zloc
+                       (skip-right)
+                       (z/right)
+                       (skip-right)))))))))
       :else
       (let [coll (some->> (z/down zloc)
                           (iterate z/right)
@@ -165,55 +166,58 @@
                   v))))
           zloc ks))
 
-(defn update [forms k f]
-  (let [zloc (z/of-node forms)
-        zloc (z/skip z/right (fn [zloc]
-                               (let [t (z/tag zloc)]
-                                 (not (contains? #{:token :map} t)))) zloc)
-        node (z/node zloc)
-        nil? (and (identical? :token (node/tag node))
-                  (nil? (node/sexpr node)))
-        zloc (if nil?
-               (z/replace zloc (node/coerce {}))
-               zloc)
-        empty? (or nil? (zero? (count (:children (z/node zloc)))))]
-    (if empty?
-      (-> zloc
-          (z/append-child (node/coerce k))
-          (z/append-child (node/coerce nil))
-          (z/root)
-          (update k f))
-      (let [zloc (z/down zloc)
-            zloc (skip-right zloc)]
-        (loop [zloc zloc]
-          (if (z/rightmost? zloc)
-            (-> zloc
-                (z/insert-right (node/coerce k))
-                (z/right)
-                (z/insert-right (f (node/coerce nil)))
-                (z/root))
-            (let [current-k (z/sexpr zloc)]
-              (if (= current-k k)
-                (let [zloc (-> zloc (z/right) (skip-right))
-                      zloc (z/replace zloc (node/coerce (f (z/node zloc))))]
-                  (z/root zloc))
-                (recur (-> zloc
-                           ;; move over value to next key
-                           (skip-right)
-                           (z/right)
-                           (skip-right)))))))))))
+(defn update
+  ([forms k f]
+   (update forms k f nil))
+  ([forms k f args]
+   (let [zloc (z/of-node forms)
+         zloc (z/skip z/right (fn [zloc]
+                                (let [t (z/tag zloc)]
+                                  (not (contains? #{:token :map} t)))) zloc)
+         node (z/node zloc)
+         nil? (and (identical? :token (node/tag node))
+                   (nil? (node/sexpr node)))
+         zloc (if nil?
+                (z/replace zloc (node/coerce {}))
+                zloc)
+         empty? (or nil? (zero? (count (:children (z/node zloc)))))]
+     (if empty?
+       (-> zloc
+           (z/append-child (node/coerce k))
+           (z/append-child (node/coerce nil))
+           (z/root)
+           (update k f args))
+       (let [zloc (z/down zloc)
+             zloc (skip-right zloc)]
+         (loop [zloc zloc]
+           (if (z/rightmost? zloc)
+             (-> zloc
+                 (z/insert-right (node/coerce k))
+                 (z/right)
+                 (z/insert-right (apply f (node/coerce nil) args))
+                 (z/root))
+             (let [current-k (z/sexpr zloc)]
+               (if (= current-k k)
+                 (let [zloc (-> zloc (z/right) (skip-right))
+                       zloc (z/replace zloc (node/coerce (apply f (z/node zloc) args)))]
+                   (z/root zloc))
+                 (recur (-> zloc
+                            ;; move over value to next key
+                            (skip-right)
+                            (z/right)
+                            (skip-right))))))))))))
 
-(defn update-in [forms keys f]
+(defn update-in [forms keys f args]
   (if (= 1 (count keys))
-    (update forms (first keys) f)
-    (update forms (first keys) #(update-in % (rest keys) f))))
+    (update forms (first keys) f args)
+    (update forms (first keys) #(update-in % (rest keys) f args))))
 
 (defn assoc-in [forms keys v]
-  (-> (if (= 1 (count keys))
-        (assoc forms (first keys) v)
-        (-> (recalc-positional-metadata forms)
-            (update (first keys) #(assoc-in % (rest keys) v))
-            (mark-for-positional-recalc)))))
+  (if (= 1 (count keys))
+    (assoc forms (first keys) v)
+    (-> (recalc-positional-metadata forms)
+        (update (first keys) #(assoc-in % (rest keys) v))
+        (mark-for-positional-recalc))))
 
 (defn map-keys [f forms]
   (let [zloc (z/of-node forms)
@@ -272,16 +276,16 @@
         zloc (skip-right zloc)]
     (loop [zloc zloc
            ks '()]
-        (if (z/rightmost? zloc)
-          ks
-          (let [k (z/node zloc)]
-            (recur (-> zloc
-                       ;; move over value to next key
-                       z/right
-                       (skip-right)
-                       maybe-right
-                       (skip-right))
-                   (c/conj ks k)))))))
+      (if (z/rightmost? zloc)
+        ks
+        (let [k (z/node zloc)]
+          (recur (-> zloc
+                     ;; move over value to next key
+                     z/right
+                     (skip-right)
+                     maybe-right
+                     (skip-right))
+                 (c/conj ks k)))))))
 
 (defn conj* [forms v]
   (let [zloc (z/of-node forms)
@@ -297,7 +301,7 @@
       (identical? tag :list) (-> zloc
                                  (z/insert-child (node/coerce v))
                                  (z/root))
-      (identical? tag :map) (assoc forms (first v) (second v)) 
+      (identical? tag :map) (assoc forms (first v) (second v))
       :else
       (throw (ex-info "Unsupported forms" {:forms forms})))))
 
@@ -305,3 +309,9 @@
   (-> (recalc-positional-metadata forms)
       (conj* v)
       mark-for-positional-recalc))
+
+(defn fnil [f nil-replacement]
+  (fn [x & args]
+    (if (= "nil" (str x))
+      (apply f (node/coerce nil-replacement) args)
+      (apply f x args))))

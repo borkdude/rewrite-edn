@@ -121,8 +121,8 @@
                           [:a :b :c] 2))))
   (is (= "{:deps {foo/foo {:mvn/version \"0.2.0\"}}}"
          (str (r/assoc-in (r/parse-string "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}")
-                           [:deps 'foo/foo :mvn/version]
-                           "0.2.0"))))
+                          [:deps 'foo/foo :mvn/version]
+                          "0.2.0"))))
   (is (= "{:a 1 :b {:c 1}}"
          (str (r/assoc-in (r/parse-string "{:a 1}") [:b :c] 1))))
   (is (= (str "{:deps {foo {:mvn/version \"x\"}\n"
@@ -194,7 +194,7 @@
   (is (= ":default" (str (r/get-in (r/parse-string "{:foo/bar 999 :foo 123}")
                                    [:bar] :default))))
   (is (= "{:foo :bar}" (str (r/get-in (r/parse-string "{:foo :bar}")
-                                   [] :default))))
+                                      [] :default))))
 
   (is (= "99" (str (r/get-in (r/parse-string "[10 99 100 15]")
                              [1]))))
@@ -240,7 +240,7 @@
                (r/conj 4)
                str))
         "always conj to end of vector"))
-  (testing "Update list" 
+  (testing "Update list"
     (is (= "(4 1 2 3)"
            (-> "()"
                (r/parse-string)
@@ -249,7 +249,7 @@
                (r/conj 1)
                (r/conj 4)
                str))
-        "always conj to begin of list")) 
+        "always conj to begin of list"))
   (testing "Update set"
     (is (= "#{1 2 3 4}"
            (-> "#{1 2 3}"
@@ -306,8 +306,14 @@
                (r/conj [:c #{1}])
                str))))
   (testing "Update unsupported forms"
-    (is (thrown-with-msg? clojure.lang.ExceptionInfo 
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo
                           #"Unsupported"
                           (-> ":k"
                               (r/parse-string)
-                              (r/conj 1))))))
+                              (r/conj 1)))))
+  (testing "Update with fnil conj"
+    (is (= "{:a [1 2 3] :b [1]}"
+           (-> "{:a [1 2 3]}"
+               (r/parse-string)
+               (r/update :b (r/fnil r/conj []) 1)
+               str)))))

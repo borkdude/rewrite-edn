@@ -1,8 +1,13 @@
 # Changelog
 
-## Unreleased
+[Rewrite-edn](https://github.com/borkdude/rewrite-edn): utility lib on top of
+[rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common operations
+to update EDN while preserving whitespace and comments.
 
-- Add `conj` ([@zerg000000](https://github.com/zerg000000))
+## 0.4.5
+
+- Add `conj`: `(str (r/update (r/parse-string "{:a [1 2 3]}") :a r/conj 1)) ;;=> "{:a [1 2 3 1]}"` ([@zerg000000](https://github.com/zerg000000))
+- Add `fnil`: `(str (r/update (r/parse-string "{:a [1 2 3]}") :b (r/fnil r/conj []) 1)) ;;=> "{:a [1 2 3] :b [1]}"`
 
 ## 0.3.4
 
