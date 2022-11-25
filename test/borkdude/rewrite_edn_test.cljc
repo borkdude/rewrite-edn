@@ -73,6 +73,13 @@
                r/parse-string
                (r/assoc :a 2)
                (r/assoc :b 3)
+               str))))
+  (testing "Assoc on map with comment"
+    (is (= "{;;a comment\n :a 2\n :b 3}"
+           (-> "{;;a comment\n}"
+               r/parse-string
+               (r/assoc :a 2)
+               (r/assoc :b 3)
                str)))))
 
 (deftest update-test

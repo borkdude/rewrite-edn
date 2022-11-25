@@ -4,6 +4,10 @@
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common operations
 to update EDN while preserving whitespace and comments.
 
+## 0.4.6
+
+- [#33](https://github.com/borkdude/rewrite-edn/issues/33): fix `assoc` on map starting with comment
+
 ## 0.4.5
 
 - Add `conj`: `(str (r/update (r/parse-string "{:a [1 2 3]}") :a r/conj 1)) ;;=> "{:a [1 2 3 1]}"` ([@zerg000000](https://github.com/zerg000000))

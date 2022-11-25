@@ -53,10 +53,9 @@
         zloc (if nil?
                (z/replace zloc (node/coerce {}))
                zloc)
-        children (:children (z/node zloc))
         length (count-uncommented-children zloc)
         out-of-bounds? (and (= :vector tag) (>= k length))
-        empty? (or nil? (zero? (count children)))]
+        empty? (or nil? (zero? length))]
     (cond
       empty?
       (-> zloc
