@@ -1,4 +1,4 @@
-(defproject borkdude/rewrite-edn "0.4.6"
+(defproject borkdude/rewrite-edn "0.4.7"
   :description "Rewrite EDN"
   :url "https://github.com/borkdude/rewrite-edn"
   :scm {:name "git"
@@ -7,7 +7,7 @@
             :url "http://opensource.org/licenses/eclipse-1.0.php"}
   :source-paths ["src"]
   :dependencies [[org.clojure/clojure "1.9.0"]
-                 [rewrite-clj "1.1.45"]]
+                 [rewrite-clj "1.1.47"]]
   ;; :plugins [[lein-codox "0.10.7"]]
   ;; :codox {:output-path "gh-pages"}
   :deploy-repositories [["clojars" {:url "https://clojars.org/repo"
