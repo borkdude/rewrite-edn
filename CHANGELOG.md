@@ -4,6 +4,10 @@
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common operations
 to update EDN while preserving whitespace and comments.
 
+## Unreleased
+
+- [#35](https://github.com/borkdude/rewrite-edn/issues/35): Bump rewrite-clj to 1.1.47
+
 ## 0.4.6
 
 - [#33](https://github.com/borkdude/rewrite-edn/issues/33): fix `assoc` on map starting with comment
