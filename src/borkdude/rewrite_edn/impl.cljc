@@ -119,7 +119,7 @@
   (let [zloc (z/of-node zloc)
         tag (z/tag zloc)]
     (cond
-      (= tag :map)
+      (= :map tag)
       (let [node (z/node zloc)
             nil? (and (identical? :token (node/tag node))
                       (nil? (node/sexpr node)))
@@ -187,11 +187,15 @@
            (z/root)
            (update k f args))
        (let [zloc (z/down zloc)
-             zloc (skip-right zloc)]
-         (loop [zloc zloc]
+             zloc (skip-right zloc)
+             first-key-loc (when-let [first-key (z/node zloc)]
+                             (meta first-key))]
+         (loop [key-count 0
+                zloc zloc]
            (if (z/rightmost? zloc)
              (-> zloc
                  (z/insert-right (node/coerce k))
+                 (indent key-count first-key-loc)
                  (z/right)
                  (z/insert-right (apply f (node/coerce nil) args))
                  (z/root))
@@ -200,16 +204,18 @@
                  (let [zloc (-> zloc (z/right) (skip-right))
                        zloc (z/replace zloc (node/coerce (apply f (z/node zloc) args)))]
                    (z/root zloc))
-                 (recur (-> zloc
+                 (recur (inc key-count)
+                        (-> zloc
                             ;; move over value to next key
                             (skip-right)
                             (z/right)
                             (skip-right))))))))))))
 
 (defn update-in [forms keys f args]
-  (if (= 1 (count keys))
-    (update forms (first keys) f args)
-    (update forms (first keys) #(update-in % (rest keys) f args))))
+  (-> (if (= 1 (count keys))
+        (update forms (first keys) f args)
+        (update forms (first keys) #(update-in % (rest keys) f args)))
+      (mark-for-positional-recalc)))
 
 (defn assoc-in [forms keys v]
   (if (= 1 (count keys))
@@ -294,7 +300,8 @@
                   (nil? (node/sexpr node)))]
     (cond
       nil? (-> (z/replace zloc (node/coerce (list v)))
-               (z/root))
+               (z/root)
+               (mark-for-positional-recalc))
       (contains? #{:vector :set} tag) (-> (z/append-child zloc (node/coerce v))
                                           (z/root))
       (identical? tag :list) (-> zloc

@@ -302,8 +302,8 @@
                (r/conj [7 8])
                str))))
   (testing "Combine with update/update-in"
-    (is (= (str "{:a [1 2 3 4]"
-                " :b (2 1)"
+    (is (= (str "{:a [1 2 3 4]\n"
+                " :b (2 1)\n"
                 " :c #{1}}")
            (-> "{:a [1 2 3]}"
                (r/parse-string)
