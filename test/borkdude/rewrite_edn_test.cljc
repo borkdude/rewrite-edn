@@ -130,7 +130,7 @@
          (str (r/assoc-in (r/parse-string "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}")
                           [:deps 'foo/foo :mvn/version]
                           "0.2.0"))))
-  (is (= "{:a 1 :b {:c 1}}"
+  (is (= "{:a 1\n :b {:c 1}}"
          (str (r/assoc-in (r/parse-string "{:a 1}") [:b :c] 1))))
   (is (= (str "{:deps {foo {:mvn/version \"x\"}\n"
               "        bar {:mvn/version \"y\"}}}")
@@ -319,7 +319,7 @@
                               (r/parse-string)
                               (r/conj 1)))))
   (testing "Update with fnil conj"
-    (is (= "{:a [1 2 3] :b [1]}"
+    (is (= "{:a [1 2 3]\n :b [1]}"
            (-> "{:a [1 2 3]}"
                (r/parse-string)
                (r/update :b (r/fnil r/conj []) 1)

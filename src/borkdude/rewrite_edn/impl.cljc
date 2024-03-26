@@ -31,8 +31,9 @@
 
 (defn indent [zloc key-count first-key-loc]
   (let [current-loc (meta (z/node zloc))]
-    (if (or (= 1 key-count)
-            (not= (:row first-key-loc) (:row current-loc)))
+    (if (and first-key-loc
+             (or (= 1 key-count)
+                 (not= (:row first-key-loc) (:row current-loc))))
       (let [zloc (-> zloc
                      (z/insert-space-right (dec (dec (:col first-key-loc))))
                      z/insert-newline-right)]
