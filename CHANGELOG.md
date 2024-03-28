@@ -4,6 +4,10 @@
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common operations
 to update EDN while preserving whitespace and comments.
 
+## 0.4.8
+
+- Add newline after adding new element to top level map with `assoc-in`
+
 ## 0.4.7
 
 - [#35](https://github.com/borkdude/rewrite-edn/issues/35): Bump rewrite-clj to 1.1.47

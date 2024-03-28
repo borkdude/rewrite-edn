@@ -323,4 +323,18 @@
            (-> "{:a [1 2 3]}"
                (r/parse-string)
                (r/update :b (r/fnil r/conj []) 1)
-               str)))))
+               str))))
+  (testing "issue 36, add newline with assoc-in"
+    (let [deps-str "
+{:deps
+ {hiccup {:mvn/version \"1.0.4\"}}}
+"]
+      (is (= "
+{:deps
+ {hiccup {:mvn/version \"1.0.4\"}}
+ :aliases {:neil {}}}
+"
+             (-> deps-str
+                 r/parse-string
+                 (r/assoc-in [:aliases :neil] {})
+                 str))))))
