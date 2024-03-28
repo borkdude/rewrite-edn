@@ -301,8 +301,7 @@
                   (nil? (node/sexpr node)))]
     (cond
       nil? (-> (z/replace zloc (node/coerce (list v)))
-               (z/root)
-               (mark-for-positional-recalc))
+               (z/root))
       (contains? #{:vector :set} tag) (-> (z/append-child zloc (node/coerce v))
                                           (z/root))
       (identical? tag :list) (-> zloc
