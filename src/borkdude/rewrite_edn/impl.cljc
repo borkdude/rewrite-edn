@@ -29,16 +29,19 @@
                  (= :uneval (z/tag zloc)))))
           zloc))
 
-(defn indent [zloc key-count first-key-loc]
+(defn indent-or-space [zloc key-count first-key-loc]
   (let [current-loc (meta (z/node zloc))]
     (if (and first-key-loc
              (or (= 1 key-count)
                  (not= (:row first-key-loc) (:row current-loc))))
-      (let [zloc (-> zloc
-                     (z/insert-space-right (dec (dec (:col first-key-loc))))
-                     z/insert-newline-right)]
-        zloc)
-      zloc)))
+      (let [indent-spaces (dec (:col first-key-loc))]
+        (cond-> zloc
+          (> indent-spaces 0)
+          (z/insert-space-right indent-spaces)
+          :always
+          z/insert-newline-right))
+      (-> zloc
+          (z/insert-space-right 1)))))
 
 (defn assoc*
   [forms k v]
@@ -76,8 +79,8 @@
                zloc zloc]
           (if (and (#{:token :map} tag) (z/rightmost? zloc))
             (-> zloc
-                (z/insert-right (node/coerce k))
-                (indent key-count first-key-loc)
+                (z/insert-right* (node/coerce k))
+                (indent-or-space key-count first-key-loc)
                 (z/right)
                 (z/insert-right (node/coerce v))
                 (z/root))
@@ -195,8 +198,8 @@
                 zloc zloc]
            (if (z/rightmost? zloc)
              (-> zloc
-                 (z/insert-right (node/coerce k))
-                 (indent key-count first-key-loc)
+                 (z/insert-right* (node/coerce k))
+                 (indent-or-space key-count first-key-loc)
                  (z/right)
                  (z/insert-right (apply f (node/coerce nil) args))
                  (z/root))
