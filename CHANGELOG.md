@@ -4,6 +4,10 @@
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common operations
 to update EDN while preserving whitespace and comments.
 
+## Unreleased
+
+- [#40](https://github.com/borkdude/rewrite-edn/issues/40): `assoc`/`update` now handles map keys that have no indent at all ([@lread](https://github.com/lread))
+
 ## 0.4.8
 
 - Add newline after adding new element to top level map with `assoc-in`

@@ -31,6 +31,13 @@
 {:a 1}
 ;; this is a cool map")
                  :b 2)))))
+  (testing "we vertically align map to first key even when not indented"
+    (is (= "{
+:a 1
+:b 2}"
+           (str (r/assoc (r/parse-string "{
+:a 1}")
+                         :b 2)))))
   (testing "Updating existing val"
     (is (= "{:a 2}"
            (str (r/assoc
@@ -88,7 +95,25 @@
                (r/parse-string "{:a #_:foo 1}")
                :a (fn [node]
                     (inc (r/sexpr node)))))))
-  ;; unlike assoc, update does not currently indent a new item
+  (testing "align with first keyword in map"
+    (is (= "{ :a 3
+  :b 1}"
+           (-> "{ :a 0}"
+               r/parse-string
+               (r/update :a (constantly 3))
+               (r/update :b (constantly 1))
+               str))))
+  (testing "align even when keyword not indented"
+    (is (= "{
+:a 3
+:b 1}"
+           (-> "{
+:a 0}"
+               r/parse-string
+               (r/update :a (constantly 3))
+               (r/update :b (constantly 1))
+               str))))
+  ;; unlike assoc, update does not currently indent when all items are new (yet)
   (is (= "{:a 0 :b 1}"
          (-> "{}"
              r/parse-string
