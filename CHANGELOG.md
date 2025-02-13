@@ -7,6 +7,7 @@ to update EDN while preserving whitespace and comments.
 ## Unreleased
 
 - [#40](https://github.com/borkdude/rewrite-edn/issues/40): `assoc`/`update` now handles map keys that have no indent at all ([@lread](https://github.com/lread))
+- [#43](https://github.com/borkdude/rewrite-edn/issues/43): bump rewrite-clj to 1.1.49 ([@lread](https://github.com/lread))
 
 ## 0.4.8
 
