@@ -6,7 +6,12 @@ to update EDN while preserving whitespace and comments.
 
 ## Unreleased
 
-- [#40](https://github.com/borkdude/rewrite-edn/issues/40): `assoc`/`update` now handles map keys that have no indent at all ([@lread](https://github.com/lread))
+- [#40](https://github.com/borkdude/rewrite-edn/issues/40): `assoc`/`update` now handles map keys that have no indent at all 
+([@lread](https://github.com/lread))
+- [#40](https://github.com/borkdude/rewrite-edn/issues/40): `assoc`/`update` now aligns indent to comment if that's all that is in the map
+([@lread](https://github.com/lread))
+- [#40](https://github.com/borkdude/rewrite-edn/issues/40): `update` now indents new entries in same way as `assoc`
+([@lread](https://github.com/lread))
 
 ## 0.4.8
 

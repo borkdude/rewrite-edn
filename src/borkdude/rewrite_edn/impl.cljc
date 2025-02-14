@@ -11,9 +11,17 @@
   (->> (z/node zloc)
        :children
        (remove
-        #(or (node/whitespace-or-comment? %)
+         #(or (node/whitespace-or-comment? %)
              (= :uneval (node/tag %))))
        count))
+
+(defn comment-loc? [zloc]
+  (#{:comment :uneval} (z/tag zloc)))
+
+(defn find-comment-child-loc [zloc]
+  (some-> zloc
+          z/down*
+          (z/find z/right* comment-loc?)))
 
 (defn maybe-right [zloc]
   (if (z/rightmost? zloc)
@@ -29,16 +37,20 @@
                  (= :uneval (z/tag zloc)))))
           zloc))
 
-(defn indent-or-space [zloc key-count first-key-loc]
+(defn skip-right-to-last-non-ws [zloc]
+  (z/skip z/left* z/whitespace? (z/rightmost* zloc)))
+
+(defn indent-or-space [zloc key-count align-loc]
   (let [current-loc (meta (z/node zloc))]
-    (if (and first-key-loc
+    (if (and align-loc
              (or (= 1 key-count)
-                 (not= (:row first-key-loc) (:row current-loc))))
-      (let [indent-spaces (dec (:col first-key-loc))]
+                 (comment-loc? zloc)
+                 (not= (:row align-loc) (:row current-loc))))
+      (let [indent-spaces (dec (:col align-loc))]
         (cond-> zloc
-          (> indent-spaces 0)
+          (pos? indent-spaces)
           (z/insert-space-right indent-spaces)
-          :always
+          (not= :comment (z/tag zloc))
           z/insert-newline-right))
       (-> zloc
           (z/insert-space-right 1)))))
@@ -59,7 +71,9 @@
                zloc)
         length (count-uncommented-children zloc)
         out-of-bounds? (and (= :vector tag) (>= k length))
-        empty? (or nil? (zero? length))]
+        zloc-comment (when (zero? length) (find-comment-child-loc zloc))
+        empty? (and (or nil? (zero? length))
+                    (not zloc-comment))]
     (cond
       empty?
       (-> zloc
@@ -70,17 +84,16 @@
       (throw #?(:clj (java.lang.IndexOutOfBoundsException.)
                 :cljs (ex-info "IndexOutOfBounds" {})))
       :else
-      (let [zloc (z/down zloc)
-            zloc (skip-right zloc)
-            ;; the location of the first key:
-            first-key-loc (when-let [first-key (z/node zloc)]
-                            (meta first-key))]
+      (let [[zloc align-to-loc] (if zloc-comment
+                                  [(-> zloc z/down* skip-right-to-last-non-ws) (-> zloc-comment z/node meta)]
+                                  (let [zloc-first-key (-> zloc z/down skip-right)]
+                                    [zloc-first-key (some-> zloc-first-key z/node meta)]))]
         (loop [key-count 0
                zloc zloc]
           (if (and (#{:token :map} tag) (z/rightmost? zloc))
             (-> zloc
                 (z/insert-right* (node/coerce k))
-                (indent-or-space key-count first-key-loc)
+                (indent-or-space key-count align-to-loc)
                 (z/right)
                 (z/insert-right (node/coerce v))
                 (z/root))
@@ -169,9 +182,9 @@
                   v))))
           zloc ks))
 
-(defn update
+(defn update*
   ([forms k f]
-   (update forms k f nil))
+   (update* forms k f nil))
   ([forms k f args]
    (let [zloc (z/of-node forms)
          zloc (z/skip z/right (fn [zloc]
@@ -180,26 +193,29 @@
          node (z/node zloc)
          nil? (and (identical? :token (node/tag node))
                    (nil? (node/sexpr node)))
+         length (count-uncommented-children zloc)
          zloc (if nil?
                 (z/replace zloc (node/coerce {}))
                 zloc)
-         empty? (or nil? (zero? (count (:children (z/node zloc)))))]
+         zloc-comment (when (zero? length) (find-comment-child-loc zloc))
+         empty? (and (or nil? (zero? length))
+                     (not zloc-comment))]
      (if empty?
        (-> zloc
            (z/append-child (node/coerce k))
            (z/append-child (node/coerce nil))
            (z/root)
-           (update k f args))
-       (let [zloc (z/down zloc)
-             zloc (skip-right zloc)
-             first-key-loc (when-let [first-key (z/node zloc)]
-                             (meta first-key))]
+           (update* k f args))
+       (let [[zloc align-to-loc] (if zloc-comment
+                                    [(-> zloc z/down* skip-right-to-last-non-ws) (-> zloc-comment z/node meta)]
+                                    (let [zloc-first-key (-> zloc z/down skip-right)]
+                                      [zloc-first-key (some-> zloc-first-key z/node meta)]))]
          (loop [key-count 0
                 zloc zloc]
            (if (z/rightmost? zloc)
              (-> zloc
                  (z/insert-right* (node/coerce k))
-                 (indent-or-space key-count first-key-loc)
+                 (indent-or-space key-count align-to-loc)
                  (z/right)
                  (z/insert-right (apply f (node/coerce nil) args))
                  (z/root))
@@ -214,6 +230,14 @@
                             (skip-right)
                             (z/right)
                             (skip-right))))))))))))
+
+(defn update
+  ([forms k f]
+   (update forms k f nil))
+  ([forms k f args]
+   (-> (recalc-positional-metadata forms)
+       (update* k f args)
+       mark-for-positional-recalc)))
 
 (defn update-in [forms keys f args]
   (-> (if (= 1 (count keys))

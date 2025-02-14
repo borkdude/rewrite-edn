@@ -21,7 +21,7 @@
            (str (r/assoc
                  (r/parse-string "{:a 1 :b 2}")
                  :c 3)))))
-  (testing "when map is already multi-line, new keys are added on new line"
+  (testing "When map is already multi-line, new keys are added on new line"
     (is (= "
 {:a 1
  :b 2}
@@ -31,7 +31,7 @@
 {:a 1}
 ;; this is a cool map")
                  :b 2)))))
-  (testing "we vertically align map to first key even when not indented"
+  (testing "We vertically align map to first key even when not indented"
     (is (= "{
 :a 1
 :b 2}"
@@ -81,9 +81,57 @@
                (r/assoc :a 2)
                (r/assoc :b 3)
                str))))
-  (testing "Assoc on map with comment"
+  (testing "Assoc on map with a single comment"
     (is (= "{;;a comment\n :a 2\n :b 3}"
            (-> "{;;a comment\n}"
+               r/parse-string
+               (r/assoc :a 2)
+               (r/assoc :b 3)
+               str))))
+  (testing "Assoc on map with only comments should align to first comment"
+    (is (= " {
+    ;; align to first comment
+;; not second comment
+    :a 2
+    :b 3}"
+           (-> " {
+    ;; align to first comment
+;; not second comment
+}"
+               r/parse-string
+               (r/assoc :a 2)
+               (r/assoc :b 3)
+               str))))
+  (testing "Unevals are classified as comments by rewrite-edn, so treat them the same"
+    (is (= "
+{   #_ (ignore me (but align to me please))
+#_ (ignore me also)
+    :a 2
+    :b 3
+}"
+           (-> "
+{   #_ (ignore me (but align to me please))
+#_ (ignore me also)
+}"
+               r/parse-string
+               (r/assoc :a 2)
+               (r/assoc :b 3)
+               str))))
+  (testing "Do not align to comments when there are also map entries"
+    (is (= "
+{  ;; we don't align to this comment
+#_ (we don't align to this uneval)
+       :align :to-first-key!
+     :dont-align :to-second-key
+       :a 2
+       :b 3
+}"
+           (-> "
+{  ;; we don't align to this comment
+#_ (we don't align to this uneval)
+       :align :to-first-key!
+     :dont-align :to-second-key
+}"
                r/parse-string
                (r/assoc :a 2)
                (r/assoc :b 3)
@@ -113,13 +161,69 @@
                (r/update :a (constantly 3))
                (r/update :b (constantly 1))
                str))))
-  ;; unlike assoc, update does not currently indent when all items are new (yet)
-  (is (= "{:a 0 :b 1}"
-         (-> "{}"
-             r/parse-string
-             (r/update :a (constantly 0))
-             (r/update :b (constantly 1))
-             str))))
+  (testing "update empty map"
+    (is (= "{:a 0\n :b 1}"
+           (-> "{}"
+               r/parse-string
+               (r/update :a (constantly 0))
+               (r/update :b (constantly 1))
+               str))))
+
+  (testing "Update on map with a single comment"
+    (is (= "{;;a comment\n :a 2\n :b 3}"
+           (-> "{;;a comment\n}"
+               r/parse-string
+               (r/update :a (constantly 2))
+               (r/update :b (constantly 3))
+               str))))
+  (testing "Update on map with only comments should align to first comment"
+    (is (= " {
+    ;; align to first comment
+;; not second comment
+    :a 2
+    :b 3}"
+           (-> " {
+    ;; align to first comment
+;; not second comment
+}"
+               r/parse-string
+               (r/update :a (constantly 2))
+               (r/update :b (constantly 3))
+               str))))
+  (testing "Unevals are classified as comments by rewrite-edn, so treat them the same"
+    (is (= "
+{   #_ (ignore me (but align to me please))
+#_ (ignore me also)
+    :a 2
+    :b 3
+}"
+           (-> "
+{   #_ (ignore me (but align to me please))
+#_ (ignore me also)
+}"
+               r/parse-string
+               (r/update :a (constantly 2))
+               (r/update :b (constantly 3))
+               str))))
+  (testing "Do not align to comments when there are also map entries"
+    (is (= "
+{  ;; we don't align to this comment
+#_ (we don't align to this uneval)
+       :align :to-first-key!
+     :dont-align :to-second-key
+       :a 2
+       :b 3
+}"
+           (-> "
+{  ;; we don't align to this comment
+#_ (we don't align to this uneval)
+       :align :to-first-key!
+     :dont-align :to-second-key
+}"
+               r/parse-string
+               (r/update :a (constantly 2))
+               (r/update :b (constantly 3))
+               str)))))
 
 (defn qualify-sym-node [sym-node]
   (let [sym (r/sexpr sym-node)]
@@ -178,8 +282,8 @@
          (str (r/update-in (r/parse-string "nil")
                            [:a :b :c]
                            (comp (fnil inc 0) r/sexpr)))))
-  ;; unlike assoc-in, update-in does not currently indent a new item
-  (is (= "{:a {:b {:c 1 :x 1}}}"
+  (is (= (str "{:a {:b {:c 1\n"
+              "         :x 1}}}")
          (-> "{}"
              r/parse-string
              (r/update-in [:a :b :c] (comp (fnil inc 0) r/sexpr))
