@@ -1,7 +1,7 @@
 # rewrite-edn
 
 [![Clojars Project](https://img.shields.io/clojars/v/borkdude/rewrite-edn.svg)](https://clojars.org/borkdude/rewrite-edn)
-[![bb compatible](https://raw.githubusercontent.com/babashka/babashka/master/logo/badge.svg)](https://babashka.org)
+[![bb compatible](https://raw.githubusercontent.com/babashka/babashka/master/logo/badge.svg)](https://book.babashka.org#badges)
 
 Utility lib on top of
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common
