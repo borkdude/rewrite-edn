@@ -189,7 +189,8 @@
    (let [zloc (z/of-node forms)
          zloc (z/skip z/right (fn [zloc]
                                 (let [t (z/tag zloc)]
-                                  (not (contains? #{:token :map} t)))) zloc)
+                                  (not (contains? #{:token :map :vector} t)))) zloc)
+         t (z/tag zloc)
          node (z/node zloc)
          nil? (and (identical? :token (node/tag node))
                    (nil? (node/sexpr node)))
@@ -210,26 +211,40 @@
                                     [(-> zloc z/down* skip-right-to-last-non-ws) (-> zloc-comment z/node meta)]
                                     (let [zloc-first-key (-> zloc z/down skip-right)]
                                       [zloc-first-key (some-> zloc-first-key z/node meta)]))]
-         (loop [key-count 0
-                zloc zloc]
-           (if (z/rightmost? zloc)
-             (-> zloc
-                 (z/insert-right* (node/coerce k))
-                 (indent-or-space key-count align-to-loc)
-                 (z/right)
-                 (z/insert-right (apply f (node/coerce nil) args))
-                 (z/root))
-             (let [current-k (z/sexpr zloc)]
-               (if (= current-k k)
-                 (let [zloc (-> zloc (z/right) (skip-right))
-                       zloc (z/replace zloc (node/coerce (apply f (z/node zloc) args)))]
-                   (z/root zloc))
+         (case t
+           :map
+           (loop [key-count 0
+                  zloc zloc]
+             (if (z/rightmost? zloc)
+               (-> zloc
+                   (z/insert-right* (node/coerce k))
+                   (indent-or-space key-count align-to-loc)
+                   (z/right)
+                   (z/insert-right (apply f (node/coerce nil) args))
+                   (z/root))
+               (let [current-k (z/sexpr zloc)]
+                 (if (= current-k k)
+                   (let [zloc (-> zloc (z/right) (skip-right))
+                         zloc (z/replace zloc (node/coerce (apply f (z/node zloc) args)))]
+                     (z/root zloc))
+                   (recur (inc key-count)
+                          (-> zloc
+                              ;; move over value to next key
+                              (skip-right)
+                              (z/right)
+                              (skip-right)))))))
+           :vector
+           (loop [key-count 0
+                  zloc zloc]
+             (if (= key-count k)
+               (let [zloc (z/replace zloc (node/coerce (apply f (z/node zloc) args)))]
+                 (z/root zloc))
+               (if (z/rightmost? zloc)
+                 (throw (ex-info (str "Can't insert at index " k " for vector") {}))
                  (recur (inc key-count)
                         (-> zloc
-                            ;; move over value to next key
                             (skip-right)
-                            (z/right)
-                            (skip-right))))))))))))
+                            (z/right))))))))))))
 
 (defn update
   ([forms k f]

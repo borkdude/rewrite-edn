@@ -288,6 +288,11 @@
              r/parse-string
              (r/update-in [:a :b :c] (comp (fnil inc 0) r/sexpr))
              (r/update-in [:a :b :x] (comp (fnil inc 0) r/sexpr))
+             str)))
+  (is (= "{:items [{:x 1} {:x 2} {:x 42}]}"
+         (-> "{:items [{:x 1} {:x 2} {:x 3}]}"
+             r/parse-string
+             (r/assoc-in [:items 2 :x] 42)
              str))))
 
 (deftest dissoc-test
