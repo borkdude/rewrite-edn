@@ -4,6 +4,10 @@
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common operations
 to update EDN while preserving whitespace and comments.
 
+## Unreleased
+
+- [#47](https://github.com/borkdude/rewrite-edn/issues/47): Bump rewrite-clj to 1.3.58
+
 ## 0.5.9
 
 - Support updating vectors with `assoc-in` etc
