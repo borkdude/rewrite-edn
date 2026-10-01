@@ -38,6 +38,12 @@
                  (= :uneval (z/tag zloc)))))
           zloc))
 
+(defn next-key [zloc]
+  (let [v (-> zloc z/right skip-right)]
+    (if (z/rightmost? v)
+      v
+      (-> v z/right skip-right))))
+
 (defn skip-right-to-last-non-ws [zloc]
   (z/skip z/left* z/whitespace? (z/rightmost* zloc)))
 
@@ -211,11 +217,9 @@
                 :else
                 (recur
                  (inc key-count)
-                 (-> zloc
-                     ;; move over value to next key
-                     (skip-right)
-                     (z/right)
-                     (skip-right)))))))))))
+                 (if (= :vector tag)
+                   (-> zloc z/right skip-right)
+                   (next-key zloc)))))))))))
 
 (defn mark-for-positional-recalc [node]
   (vary-meta node c/assoc :rewrite-edn/positional-recalc true))
@@ -257,10 +261,7 @@
                   (-> zloc (z/right) (skip-right) first)
                   (recur
                    (inc key-count)
-                   (-> zloc
-                       (skip-right)
-                       (z/right)
-                       (skip-right)))))))))
+                   (next-key zloc))))))))
       (= :set tag)
       (or (some #(when (= k (node/sexpr %)) %)
                 (filter significant? (:children (z/node zloc))))
@@ -344,12 +345,7 @@
                    (let [zloc (-> zloc (z/right) (skip-right))
                          zloc (z/replace zloc (node/coerce (apply f (z/node zloc) args)))]
                      (z/root zloc))
-                   (recur (inc key-count)
-                          (-> zloc
-                              ;; move over value to next key
-                              (skip-right)
-                              (z/right)
-                              (skip-right)))))))
+                   (recur (inc key-count) (next-key zloc))))))
            :vector
            (loop [key-count 0
                   zloc zloc]
@@ -443,11 +439,7 @@
                   (-> zloc z/right skip-right z/remove
                       (z/find z/prev #(identical? key-node (z/node %)))
                       z/remove z/root))
-                (recur (-> zloc
-                           ;; move over value to next key
-                           (skip-right)
-                           (z/right)
-                           (skip-right)))))))))))
+                (recur (next-key zloc))))))))))
 
 (defn keys [forms]
   (let [zloc (find-map (z/of-node forms))

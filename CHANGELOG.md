@@ -16,6 +16,7 @@ to update EDN while preserving whitespace and comments.
 - `map-keys` returns an empty map instead of throwing
 - `keys` and `map-keys` find a map that follows other top-level forms
 - `get` and `get-in` look up an element in a set
+- `get`, `assoc`, `update` and `dissoc` skip map values while searching for a key. Before, `(assoc {:a :b :b 1} :b 2)` replaced the wrong node
 
 ## 0.5.9
 

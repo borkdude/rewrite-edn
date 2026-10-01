@@ -366,6 +366,17 @@
   (is (= "nil" (str (r/get-in (r/parse-string "{:a :k}") [:a :b]))))
   (is (= ":x" (str (r/get-in (r/parse-string "{:a #{:x}}") [:a :x])))))
 
+(deftest value-equal-to-key-test
+  (let [nodes (r/parse-string "{:a :b :b 1}")]
+    (is (= "1" (str (r/get nodes :b))))
+    (is (= "{:a :b :b 2}" (str (r/assoc nodes :b 2))))
+    (is (= "{:a :b :b 2}" (str (r/update nodes :b (constantly 2)))))
+    (is (= "{:a :b}" (str (r/dissoc nodes :b)))))
+  (is (= "{:w 1 :x 3 1 2}" (str (r/assoc (r/parse-string "{:w 1 :x 3}") 1 2))))
+  (is (= "{:aliases {:dev :test :test {:x 1}}}"
+         (str (r/assoc-in (r/parse-string "{:aliases {:dev :test :test {}}}")
+                          [:aliases :test :x] 1)))))
+
 (deftest threaded-test
   ;; identation continues to work with a mix of threaded operations
   (is (= (str "{:a {:b 1\n"
