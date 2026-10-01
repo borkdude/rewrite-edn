@@ -240,7 +240,13 @@
                           (r/parse-string "
 {foo 1
  bar 2}")))))
-  (is (= "{}" (str (r/map-keys identity (r/parse-string "{}"))))))
+  (is (= "{}" (str (r/map-keys identity (r/parse-string "{}")))))
+  (is (= "1 {:b 1}" (str (r/map-keys (constantly :b) (r/parse-string "1 {:a 1}")))))
+  (testing "map-keys calls f once per key"
+    (let [calls (atom 0)]
+      (r/map-keys #(do (swap! calls inc) (if (= :a/x %) :_/x %))
+                  (r/parse-string "#:a{:x 1 :y 2}"))
+      (is (= 2 @calls)))))
 
 (deftest update-deps-test
   (is (= "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}"
@@ -326,7 +332,8 @@
          (->> (r/parse-string "{:foo/bar 999 :foo 123 baz 42 foo/baz 23 1 0}")
               r/keys
               (map r/sexpr)
-              (into #{})))))
+              (into #{}))))
+  (is (= [:a] (map r/sexpr (r/keys (r/parse-string "1 {:a 1}"))))))
 
 (deftest get-in-test
   (is (= "999" (str (r/get-in (r/parse-string "{:foo/bar 999 :foo 123}")
@@ -527,6 +534,8 @@
   (testing "assoc of :_/z writes #:a{} as a plain map"
     (is (= "{:a/x 1\n :a/y 2\n :_/z 3}"
            (str (r/assoc (r/parse-string "#:a{:x 1\n    :y 2}") :_/z 3))))
+    (is (= "{:a/x 1 ;; c\n :a/y 2\n :_/z 3}"
+           (str (r/assoc (r/parse-string "#:a{:x 1 ;; c\n    :y 2}") :_/z 3))))
     (is (= "{\n :a/x 1\n :_/z 3}"
            (str (r/assoc (r/parse-string "#:a{\n :x 1}") :_/z 3))))
     (is (= "{:deps {:a/x 1\n        a/y 2\n        :_/z 3}}"

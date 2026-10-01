@@ -77,7 +77,7 @@
       (recur
        (z/next*
         (if (and (= :whitespace (z/tag zloc))
-                 (= :newline (some-> (z/left* zloc) z/tag)))
+                 (#{:newline :comment} (some-> (z/left* zloc) z/tag)))
           (let [width (- (count (node/string (z/node zloc))) n)]
             (if (pos? width)
               (z/replace* zloc (node/spaces width))
@@ -362,33 +362,37 @@
    (if (#{:map :namespaced-map} (z/tag zloc))
      zloc
      (z/skip z/right (fn [zloc]
-                       (and (not (z/rightmost zloc))
+                       (and (not (z/rightmost? zloc))
                             (not (#{:map :namespaced-map} (z/tag zloc))))) zloc))))
 
 (declare keys)
 
-(defn map-keys [f forms]
+(defn replace-keys [new-ks forms]
   (let [map-zloc (find-map (z/of-node forms))
         qualifier (map-qualifier map-zloc)
         zloc (some-> map-zloc z/down skip-right)
         bad-key (when qualifier
-                  (some #(when-not (representable-key? qualifier %) %)
-                        (map (comp f node/sexpr) (keys forms))))]
+                  (some #(when-not (representable-key? qualifier %) %) new-ks))]
     (cond
-      bad-key (map-keys f (expand-namespaced-map map-zloc bad-key))
+      bad-key (replace-keys new-ks (expand-namespaced-map map-zloc bad-key))
       (nil? zloc) (z/root map-zloc)
       :else
-      (loop [zloc zloc]
+      (loop [zloc zloc
+             new-ks new-ks]
         (if (z/rightmost? zloc)
           (z/root zloc)
-          (let [zloc (let [new-key (node/coerce (qualify-key qualifier (f (z/sexpr zloc))))]
+          (let [zloc (let [new-key (node/coerce (qualify-key qualifier (first new-ks)))]
                        (-> (z/replace zloc new-key)
                            z/right))]
             (recur (-> zloc
                        ;; move over value to next key
                        (skip-right)
                        maybe-right
-                       (skip-right)))))))))
+                       (skip-right))
+                   (rest new-ks))))))))
+
+(defn map-keys [f forms]
+  (replace-keys (mapv (comp f node/sexpr) (reverse (keys forms))) forms))
 
 (defn dissoc [forms k]
   (let [zloc (z/of-node forms)
