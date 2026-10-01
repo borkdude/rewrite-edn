@@ -4,6 +4,11 @@
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common operations
 to update EDN while preserving whitespace and comments.
 
+## Unreleased
+
+- [#39](https://github.com/borkdude/rewrite-edn/issues/39): `get-in`, `assoc`, `update`, `dissoc`, `keys` and `map-keys` work on namespaced maps like `#:a{:x 1}`
+- New keys in a namespaced map are written so they read back as the given key, e.g. `:y` as `:_/y` in `#:a{}`
+
 ## 0.5.9
 
 - Support updating vectors with `assoc-in` etc

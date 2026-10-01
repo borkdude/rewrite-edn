@@ -472,3 +472,54 @@
                  r/parse-string
                  (r/assoc-in [:aliases :neil] {})
                  str))))))
+
+(deftest namespaced-map-test
+  (let [deps "{:deps #:babashka{pods #:git{:url \"x\" :sha \"y\"}}}"
+        nodes (r/parse-string deps)]
+    (testing "get-in reads keys of namespaced maps"
+      (is (= "#:git{:url \"x\" :sha \"y\"}"
+             (str (r/get-in nodes '[:deps babashka/pods]))))
+      (is (= "\"x\"" (str (r/get-in nodes '[:deps babashka/pods :git/url]))))
+      (is (= "nil" (str (r/get-in nodes '[:deps babashka/other]))))
+      (is (= "nil" (str (r/get-in nodes '[:deps pods])))))
+    (testing "assoc-in replaces an existing key"
+      (is (= "{:deps #:babashka{pods #:git{:url \"x\" :sha \"z\"}}}"
+             (str (r/assoc-in nodes '[:deps babashka/pods :git/sha] "z")))))
+    (testing "update-in changes an existing key"
+      (is (= "{:deps #:babashka{pods #:git{:url \"x\" :sha \"yy\"}}}"
+             (str (r/update-in nodes '[:deps babashka/pods :git/sha]
+                               #(str (r/sexpr %) "y"))))))
+    (testing "dissoc removes a key"
+      (is (= "#:git{:url \"x\"}"
+             (str (r/dissoc (r/parse-string "#:git{:url \"x\" :sha \"y\"}") :git/sha))))))
+  (testing "assoc writes :a/y as :y and :y as :_/y in #:a{}"
+    (let [nodes (r/parse-string "#:a{:x 1 :w 0}")]
+      (is (= "#:a{:x 1 :w 0 :y 2}" (str (r/assoc nodes :a/y 2))))
+      (is (= "#:a{:x 1 :w 0 :_/y 2}" (str (r/assoc nodes :y 2))))
+      (is (= "#:a{:x 1 :w 0 :b/y 2}" (str (r/assoc nodes :b/y 2))))
+      (is (= {:a/x 1 :a/w 0 :a/y 2 :y 3 :b/y 4}
+             (-> nodes
+                 (r/assoc :a/y 2)
+                 (r/assoc :y 3)
+                 (r/assoc :b/y 4)
+                 r/sexpr)))))
+  (testing "assoc adds keys to #:a{}"
+    (is (= "#:a{:y 1}" (str (r/assoc (r/parse-string "#:a{}") :a/y 1))))
+    (is (= "#:a{:_/y 1}" (str (r/assoc (r/parse-string "#:a{}") :y 1)))))
+  (testing "update adds a missing key"
+    (is (= "#:a{:x 1 :w 2 :v 5}"
+           (str (r/update (r/parse-string "#:a{:x 1 :w 2}") :a/v (constantly 5))))))
+  (testing "assoc-in creates a path below a namespaced map"
+    (is (= "{:deps #:a{b {:c 1}\n           d 2\n           e {:f 3}}}"
+           (str (r/assoc-in (r/parse-string "{:deps #:a{b {:c 1}\n           d 2}}")
+                            '[:deps a/e :f] 3)))))
+  (testing "conj adds an entry"
+    (is (= "#:a{:x 1 :w 2 :q 3}"
+           (str (r/conj (r/parse-string "#:a{:x 1 :w 2}") [:a/q 3])))))
+  (testing "keys returns qualified keys"
+    (is (= #{:a/x :a/y}
+           (set (map r/sexpr (r/keys (r/parse-string "#:a{:x 1 :y 2}")))))))
+  (testing "map-keys writes :y as :_/y in #:a{}"
+    (is (= "#:a{:z 1 :_/y 2}"
+           (str (r/map-keys #(if (= :a/x %) :a/z :y)
+                            (r/parse-string "#:a{:x 1 :y 2}")))))))
