@@ -325,7 +325,10 @@
   (is (= "nil" (str (r/get (r/parse-string "{}") :a))))
   (is (= ":default" (str (r/get (r/parse-string "{}") :a :default))))
   (is (= "nil" (str (r/get (r/parse-string "(10 99)") 0))))
-  (is (= "nil" (str (r/get (r/parse-string ":k") :a)))))
+  (is (= "nil" (str (r/get (r/parse-string ":k") :a))))
+  (is (= "1" (str (r/get (r/parse-string "#{1 #_2 2}") 1))))
+  (is (= "nil" (str (r/get (r/parse-string "#{1 2}") 3))))
+  (is (= ":default" (str (r/get (r/parse-string "#{}") 3 :default)))))
 
 (deftest keys-test
   (is (= #{:foo/bar :foo 'baz 'foo/baz 1}
@@ -360,7 +363,8 @@
   (is (= "nil" (str (r/get-in (r/parse-string "[10 99 100 15]") [10] nil))))
   (is (= ":default" (str (r/get-in (r/parse-string "[10 99 100 15]")
                                    [10] :default))))
-  (is (= "nil" (str (r/get-in (r/parse-string "{:a :k}") [:a :b])))))
+  (is (= "nil" (str (r/get-in (r/parse-string "{:a :k}") [:a :b]))))
+  (is (= ":x" (str (r/get-in (r/parse-string "{:a #{:x}}") [:a :x])))))
 
 (deftest threaded-test
   ;; identation continues to work with a mix of threaded operations

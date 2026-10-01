@@ -15,6 +15,7 @@ to update EDN while preserving whitespace and comments.
 - `dissoc` removes the value if `#_` precedes it
 - `map-keys` returns an empty map instead of throwing
 - `keys` and `map-keys` find a map that follows other top-level forms
+- `get` and `get-in` look up an element in a set
 
 ## 0.5.9
 
