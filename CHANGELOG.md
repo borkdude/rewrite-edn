@@ -8,6 +8,11 @@ to update EDN while preserving whitespace and comments.
 
 - [#39](https://github.com/borkdude/rewrite-edn/issues/39): `get-in`, `assoc`, `update`, `dissoc`, `keys` and `map-keys` work on namespaced maps like `#:a{:x 1}`
 - New keys in a namespaced map are written so they read back as the given key, e.g. `:y` as `:_/y` in `#:a{}`
+- `assoc`, `update` and `map-keys` write a namespaced map as a plain map to add a key with namespace `_`, and throw for `#::{}`
+- `get` returns the default on an empty map instead of `:empty`
+- `get` and `get-in` return the default on a scalar or list instead of throwing
+- `dissoc` removes the value if `#_` precedes it
+- `map-keys` returns an empty map instead of throwing
 
 ## 0.5.9
 

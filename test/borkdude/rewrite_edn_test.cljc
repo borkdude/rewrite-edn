@@ -239,7 +239,8 @@
          (str (r/map-keys qualify-sym-node
                           (r/parse-string "
 {foo 1
- bar 2}"))))))
+ bar 2}")))))
+  (is (= "{}" (str (r/map-keys identity (r/parse-string "{}"))))))
 
 (deftest update-deps-test
   (is (= "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}"
@@ -300,7 +301,8 @@
   (is (= "{:a 1}" (str (r/dissoc (r/parse-string "{:a 1 \n\n:b 2}") :b))))
   (is (= "{:a 1\n:c 3}" (str (r/dissoc (r/parse-string "{:a 1\n:b 2\n:c 3}") :b))))
   (is (= "{:deps {foo/bar {}}}" (str (r/update (r/parse-string "{:deps {foo/bar {} foo/baz {}}}")
-                                               :deps #(r/dissoc % 'foo/baz))))))
+                                               :deps #(r/dissoc % 'foo/baz)))))
+  (is (= "{#_:ignored :b 2}" (str (r/dissoc (r/parse-string "{:a #_:ignored 1 :b 2}") :a)))))
 
 (deftest get-test
   (is (= "999" (str (r/get (r/parse-string "{:foo/bar 999 :foo 123}") :foo/bar))))
@@ -312,7 +314,12 @@
   (is (= "99" (str (r/get (r/parse-string "[10 99 100 15]") 1))))
   (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10))))
   (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10 nil))))
-  (is (= ":default" (str (r/get (r/parse-string "[10 99 100 15]") 10 :default)))))
+  (is (= ":default" (str (r/get (r/parse-string "[10 99 100 15]") 10 :default))))
+  (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") -1))))
+  (is (= "nil" (str (r/get (r/parse-string "{}") :a))))
+  (is (= ":default" (str (r/get (r/parse-string "{}") :a :default))))
+  (is (= "nil" (str (r/get (r/parse-string "(10 99)") 0))))
+  (is (= "nil" (str (r/get (r/parse-string ":k") :a)))))
 
 (deftest keys-test
   (is (= #{:foo/bar :foo 'baz 'foo/baz 1}
@@ -345,7 +352,8 @@
   (is (= "nil" (str (r/get-in (r/parse-string "[10 [99] 100 15]") [1 10]))))
   (is (= "nil" (str (r/get-in (r/parse-string "[10 99 100 15]") [10] nil))))
   (is (= ":default" (str (r/get-in (r/parse-string "[10 99 100 15]")
-                                   [10] :default)))))
+                                   [10] :default))))
+  (is (= "nil" (str (r/get-in (r/parse-string "{:a :k}") [:a :b])))))
 
 (deftest threaded-test
   ;; identation continues to work with a mix of threaded operations
@@ -516,6 +524,26 @@
   (testing "conj adds an entry"
     (is (= "#:a{:x 1 :w 2 :q 3}"
            (str (r/conj (r/parse-string "#:a{:x 1 :w 2}") [:a/q 3])))))
+  (testing "assoc of :_/z writes #:a{} as a plain map"
+    (is (= "{:a/x 1\n :a/y 2\n :_/z 3}"
+           (str (r/assoc (r/parse-string "#:a{:x 1\n    :y 2}") :_/z 3))))
+    (is (= "{\n :a/x 1\n :_/z 3}"
+           (str (r/assoc (r/parse-string "#:a{\n :x 1}") :_/z 3))))
+    (is (= "{:deps {:a/x 1\n        a/y 2\n        :_/z 3}}"
+           (str (r/assoc-in (r/parse-string "{:deps #:a{:x 1\n           y 2}}")
+                            [:deps :_/z] 3)))))
+  (testing "update of :_/z writes #:a{} as a plain map"
+    (is (= "{:a/x 1\n :_/z 3}"
+           (str (r/update (r/parse-string "#:a{:x 1}") :_/z (constantly 3))))))
+  (testing "map-keys to :_/z writes #:a{} as a plain map"
+    (is (= "{:_/z 1}"
+           (str (r/map-keys (constantly :_/z) (r/parse-string "#:a{:x 1}"))))))
+  (testing "assoc of :_/z into #::{} throws"
+    (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs ExceptionInfo)
+                          #"auto-resolved"
+                          (r/assoc (r/parse-string "#::{:x 1}") :_/z 3))))
+  (testing "get on #:a{} returns nil"
+    (is (= "nil" (str (r/get (r/parse-string "#:a{}") :a/x)))))
   (testing "keys returns qualified keys"
     (is (= #{:a/x :a/y}
            (set (map r/sexpr (r/keys (r/parse-string "#:a{:x 1 :y 2}")))))))
