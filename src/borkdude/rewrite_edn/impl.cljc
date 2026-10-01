@@ -3,6 +3,7 @@
                             get-in conj fnil])
   (:require
    [clojure.core :as c]
+   [clojure.string :as str]
    [rewrite-clj.node :as node]
    [rewrite-clj.parser :as p]
    [rewrite-clj.zip :as z]))
@@ -70,19 +71,33 @@
   (not (or (node/whitespace-or-comment? node)
            (= :uneval (node/tag node)))))
 
-(defn dedent [node n]
-  (loop [zloc (z/of-node* node)]
-    (if (z/end? zloc)
-      (z/root zloc)
-      (recur
-       (z/next*
-        (if (and (= :whitespace (z/tag zloc))
-                 (#{:newline :comment} (some-> (z/left* zloc) z/tag)))
-          (let [width (- (count (node/string (z/node zloc))) n)]
-            (if (pos? width)
-              (z/replace* zloc (node/spaces width))
-              (z/remove* zloc)))
-          zloc))))))
+(defn line-start? [zloc]
+  (#{:newline :comment} (some-> (z/left* zloc) z/tag)))
+
+(defn indent-line [zloc n]
+  (if (= :whitespace (z/tag zloc))
+    (let [width (+ (count (node/string (z/node zloc))) n)]
+      (if (pos? width)
+        (z/replace* zloc (node/spaces width))
+        (z/remove* zloc)))
+    (cond-> zloc
+      (and (pos? n) (not= :newline (z/tag zloc)))
+      (z/insert-left* (node/spaces n)))))
+
+(defn indent [node n]
+  (if (zero? n)
+    node
+    (loop [zloc (z/of-node* node)]
+      (if (z/end? zloc)
+        (z/root zloc)
+        (recur (z/next* (cond-> zloc
+                          (line-start? zloc) (indent-line n))))))))
+
+(defn end-col [col s]
+  (let [i (str/last-index-of s "\n")]
+    (if i
+      (- (count s) i)
+      (+ col (count s)))))
 
 (defn expand-namespaced-map [zloc k]
   (when (:auto-resolved? (map-qualifier zloc))
@@ -93,23 +108,31 @@
         shift (- col (:col (meta (z/node (z/up zloc)))))
         first-key (first (filter significant? (:children node)))
         dedent-by (if (= row (some-> first-key meta :row)) shift 0)
-        node (dedent node dedent-by)
         children (vec (:children node))
         key-idxs (set (take-nth 2 (filter #(significant? (children %))
                                           (range (count children)))))
-        move (fn [pos]
-               (if (= row (:row pos))
-                 (c/update pos :col - shift)
-                 (c/update pos :col #(- % (min dedent-by (dec %))))))
-        children (map-indexed
-                  (fn [i child]
-                    (let [k (when (key-idxs i) (node/sexpr child))
-                          pos (meta child)]
-                      (cond-> (if (or (keyword? k) (symbol? k))
-                                (node/coerce k)
-                                child)
-                        (:col pos) (with-meta (move pos)))))
-                  children)]
+        children (loop [i 0
+                        col (inc (- col shift))
+                        out []]
+                   (if (= i (count children))
+                     out
+                     (let [child (children i)
+                           line-start (and (pos? i)
+                                           (#{:newline :comment} (node/tag (children (dec i)))))
+                           k (when (key-idxs i) (node/sexpr child))
+                           pos (meta child)
+                           child (cond
+                                   (and line-start (= :whitespace (node/tag child)))
+                                   (let [width (- (count (node/string child)) dedent-by)]
+                                     (when (pos? width) (node/spaces width)))
+                                   (or (keyword? k) (symbol? k)) (node/coerce k)
+                                   :else child)
+                           child (cond-> child
+                                   (and child (:col pos)) (-> (indent (- col (:col pos)))
+                                                  (with-meta (c/assoc pos :col col))))]
+                       (recur (inc i)
+                              (if child (end-col col (node/string child)) col)
+                              (cond-> out child (c/conj child))))))]
     (-> zloc z/up (z/replace (node/replace-children node children)) z/root)))
 
 (defn indent-or-space [zloc key-count align-loc]

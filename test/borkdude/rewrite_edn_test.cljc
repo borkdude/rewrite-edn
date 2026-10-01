@@ -536,6 +536,9 @@
            (str (r/assoc (r/parse-string "#:a{:x 1\n    :y 2}") :_/z 3))))
     (is (= "{:a/x 1 ;; c\n :a/y 2\n :_/z 3}"
            (str (r/assoc (r/parse-string "#:a{:x 1 ;; c\n    :y 2}") :_/z 3))))
+    (is (= "{:a/x {:p 1\n       :q 2}\n :a/y {:p 1\n       :q 2}\n :_/z 3}"
+           (str (r/assoc (r/parse-string "#:a{:x {:p 1\n        :q 2}\n    :y {:p 1\n        :q 2}}")
+                         :_/z 3))))
     (is (= "{\n :a/x 1\n :_/z 3}"
            (str (r/assoc (r/parse-string "#:a{\n :x 1}") :_/z 3))))
     (is (= "{:deps {:a/x 1\n        a/y 2\n        :_/z 3}}"
