@@ -73,6 +73,11 @@
           (r/assoc (r/parse-string "[9 8 3 #_99 #_213 7] ;; this is a cool vector") 4 99)
           false
           (catch java.lang.IndexOutOfBoundsException _ true))))
+  (testing "assoc and update throw IndexOutOfBoundsException outside a vector"
+    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs :default)
+                 (r/assoc (r/parse-string "[]") 0 1)))
+    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs :default)
+                 (r/update (r/parse-string "[1]") 1 (constantly 2)))))
   (testing "Repeated assoc"
     (is (= (str "{:a 2\n"
                 " :b 3}")
