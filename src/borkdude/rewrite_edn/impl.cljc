@@ -8,10 +8,12 @@
    [rewrite-clj.parser :as p]
    [rewrite-clj.zip :as z]))
 
-(declare significant?)
+(defn significant? [node]
+  (not (or (node/whitespace-or-comment? node)
+           (= :uneval (node/tag node)))))
 
-(defn count-uncommented-children [zloc]
-  (count (filter significant? (:children (z/node zloc)))))
+(defn significant-children [zloc]
+  (filterv significant? (:children (z/node zloc))))
 
 (defn nil-node? [node]
   (and (= :token (node/tag node))
@@ -20,22 +22,11 @@
 (defn comment-loc? [zloc]
   (#{:comment :uneval} (z/tag zloc)))
 
-(defn find-comment-child-loc [zloc]
-  (some-> zloc
-          z/down*
-          (z/find z/right* comment-loc?)))
-
 (defn skip-right [zloc]
   (z/skip z/right
-          (fn [zloc]
-            (and
-             (not (z/rightmost? zloc))
-             (or (node/whitespace-or-comment? (z/node zloc))
-                 (= :uneval (z/tag zloc)))))
+          #(and (not (z/rightmost? %))
+                (not (significant? (z/node %))))
           zloc))
-
-(defn skip-right-to-last-non-ws [zloc]
-  (z/skip z/left* z/whitespace? (z/rightmost* zloc)))
 
 (defn enter-namespaced-map [zloc]
   (if (= :namespaced-map (z/tag zloc))
@@ -63,10 +54,6 @@
 
 (defn representable-key? [qualifier k]
   (not (and qualifier (ident? k) (= "_" (namespace k)))))
-
-(defn significant? [node]
-  (not (or (node/whitespace-or-comment? node)
-           (= :uneval (node/tag node)))))
 
 (defn key-loc [zloc]
   (when (and zloc (significant? (z/node zloc)))
@@ -114,8 +101,6 @@
         shift (- col (:col (meta (z/node (z/up zloc)))))
         dedent-by (if (= row (some-> (first-key zloc) z/node meta :row)) shift 0)
         children (vec (:children node))
-        key-idxs (set (take-nth 2 (filter #(significant? (children %))
-                                          (range (count children)))))
         children (loop [i 0
                         col (inc (- col shift))
                         out []]
@@ -124,7 +109,7 @@
                      (let [child (children i)
                            line-start (and (pos? i)
                                            (#{:newline :comment} (node/tag (children (dec i)))))
-                           k (when (key-idxs i) (node/sexpr child))
+                           k (when (:map-qualifier child) (node/sexpr child))
                            pos (meta child)
                            child (cond
                                    (and line-start (= :whitespace (node/tag child)))
@@ -170,46 +155,29 @@
 (defn assoc [forms k v]
   (update forms k (constantly v) nil))
 
-(defn get [zloc k default]
-  (let [zloc (enter-namespaced-map (z/of-node zloc))
-        tag (z/tag zloc)]
-    (cond
-      (= :map tag)
-      (loop [zloc (first-key zloc)]
-        (cond
-          (nil? zloc) (node/coerce default)
-          (= (z/sexpr zloc) k) (-> zloc z/right skip-right z/node)
-          :else (recur (next-key zloc))))
-      (= :set tag)
-      (or (some #(when (= k (node/sexpr %)) %)
-                (filter significant? (:children (z/node zloc))))
-          (node/coerce default))
-      (and (= :vector tag) (integer? k))
-      (let [elems (filterv significant? (:children (z/node zloc)))]
-        (if (< -1 k (count elems))
-          (nth elems k)
-          (node/coerce default)))
-      :else
-      (node/coerce default))))
+(defn lookup [node k]
+  (let [zloc (enter-namespaced-map (z/of-node node))
+        elems (significant-children zloc)]
+    (case (z/tag zloc)
+      :map (some (fn [[k' v]] (when (= k (node/sexpr k')) v)) (partition 2 elems))
+      :set (some #(when (= k (node/sexpr %)) %) elems)
+      :vector (when (and (integer? k) (< -1 k (count elems))) (nth elems k))
+      nil)))
 
-(defn get-in [zloc ks not-found]
-  (reduce (fn [zloc k]
-            (let [v (get zloc k ::not-found)]
-              (if (= ::not-found (node/sexpr v))
-                (reduced (node/coerce not-found))
-                v)))
-          zloc ks))
+(defn get [node k default]
+  (or (lookup node k) (node/coerce default)))
 
-(defn index-out-of-bounds []
-  #?(:clj (java.lang.IndexOutOfBoundsException.)
-     :cljs (ex-info "IndexOutOfBounds" {})))
+(defn get-in [node ks not-found]
+  (or (reduce #(or (lookup %1 %2) (reduced nil)) node ks)
+      (node/coerce not-found)))
 
 (defn replace-with [zloc f args]
   (z/root (z/replace zloc (node/coerce (apply f (z/node zloc) args)))))
 
 (defn update-vector [zloc k f args]
-  (when-not (< -1 k (count-uncommented-children zloc))
-    (throw (index-out-of-bounds)))
+  (when-not (< -1 k (count (significant-children zloc)))
+    (throw #?(:clj (java.lang.IndexOutOfBoundsException.)
+              :cljs (ex-info "IndexOutOfBounds" {}))))
   (loop [i 0
          zloc (-> zloc z/down skip-right)]
     (if (= i k)
@@ -239,8 +207,9 @@
             (if-let [next-zloc (next-key zloc)]
               (recur (inc key-count) next-zloc)
               (insert (z/rightmost zloc) (inc key-count) (meta (z/node key-zloc))))))
-        (if-let [comment-zloc (find-comment-child-loc zloc)]
-          (insert (-> zloc z/down* skip-right-to-last-non-ws) 0 (meta (z/node comment-zloc)))
+        (if-let [comment-zloc (some-> zloc z/down* (z/find z/right* comment-loc?))]
+          (insert (z/skip z/left* z/whitespace? (z/rightmost* comment-zloc))
+                  0 (meta (z/node comment-zloc)))
           (-> zloc
               (z/append-child k-node)
               (z/append-child (new-v))
@@ -293,7 +262,7 @@
 
 (defn dissoc [forms k]
   (let [zloc (find-target forms #{:token :map :namespaced-map})]
-    (loop [zloc (when-not (nil-node? (z/node zloc)) (first-key zloc))]
+    (loop [zloc (first-key zloc)]
       (cond
         (nil? zloc) forms
         (= (z/sexpr zloc) k)
@@ -304,27 +273,17 @@
         :else (recur (next-key zloc))))))
 
 (defn keys [forms]
-  (loop [zloc (first-key (find-target forms #{:map :namespaced-map}))
-         ks '()]
-    (if zloc
-      (recur (next-key zloc) (c/conj ks (z/node zloc)))
-      ks)))
+  (into () (take-nth 2) (significant-children (find-target forms #{:map :namespaced-map}))))
 
 (defn conj* [forms v]
-  (let [zloc (z/of-node forms)
-        node (z/node zloc)
-        tag  (node/tag node)]
-    (cond
-      (nil-node? node) (-> (z/replace zloc (node/coerce (list v)))
-                           (z/root))
-      (contains? #{:vector :set} tag) (-> (z/append-child zloc (node/coerce v))
-                                          (z/root))
-      (identical? tag :list) (-> zloc
-                                 (z/insert-child (node/coerce v))
-                                 (z/root))
-      (contains? #{:map :namespaced-map} tag) (assoc forms (first v) (second v))
-      :else
-      (throw (ex-info "Unsupported forms" {:forms forms})))))
+  (let [zloc (z/of-node forms)]
+    (if (nil-node? (z/node zloc))
+      (z/root (z/replace zloc (node/coerce (list v))))
+      (case (z/tag zloc)
+        (:vector :set) (z/root (z/append-child zloc (node/coerce v)))
+        :list (z/root (z/insert-child zloc (node/coerce v)))
+        (:map :namespaced-map) (assoc forms (first v) (second v))
+        (throw (ex-info "Unsupported forms" {:forms forms}))))))
 
 (defn conj [forms v]
   (-> (recalc-positional-metadata forms)
@@ -333,6 +292,6 @@
 
 (defn fnil [f nil-replacement]
   (fn [x & args]
-    (if (= "nil" (str x))
+    (if (nil-node? x)
       (apply f (node/coerce nil-replacement) args)
       (apply f x args))))

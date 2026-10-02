@@ -369,7 +369,9 @@
   (is (= ":default" (str (r/get-in (r/parse-string "[10 99 100 15]")
                                    [10] :default))))
   (is (= "nil" (str (r/get-in (r/parse-string "{:a :k}") [:a :b]))))
-  (is (= ":x" (str (r/get-in (r/parse-string "{:a #{:x}}") [:a :x])))))
+  (is (= ":x" (str (r/get-in (r/parse-string "{:a #{:x}}") [:a :x]))))
+  (is (= ":borkdude.rewrite-edn.impl/not-found"
+         (str (r/get-in (r/parse-string "{:a :borkdude.rewrite-edn.impl/not-found}") [:a] 1)))))
 
 (deftest value-equal-to-key-test
   (let [nodes (r/parse-string "{:a :b :b 1}")]
