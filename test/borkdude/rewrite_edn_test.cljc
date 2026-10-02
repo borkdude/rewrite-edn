@@ -565,10 +565,6 @@
   (testing "map-keys to :_/z writes #:a{} as a plain map"
     (is (= "{:_/z 1}"
            (str (r/map-keys (constantly :_/z) (r/parse-string "#:a{:x 1}"))))))
-  (testing "assoc of :_/z into #::{} throws"
-    (is (thrown-with-msg? #?(:clj clojure.lang.ExceptionInfo :cljs ExceptionInfo)
-                          #"auto-resolved"
-                          (r/assoc (r/parse-string "#::{:x 1}") :_/z 3))))
   (testing "get on #:a{} returns nil"
     (is (= "nil" (str (r/get (r/parse-string "#:a{}") :a/x)))))
   (testing "keys returns qualified keys"

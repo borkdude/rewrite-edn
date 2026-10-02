@@ -42,7 +42,7 @@
     zloc))
 
 (defn map-qualifier [zloc]
-  (when-let [parent (z/up zloc)]
+  (let [parent (z/up zloc)]
     (when (= :namespaced-map (z/tag parent))
       (-> parent z/down z/node))))
 
@@ -52,8 +52,7 @@
           k-ns (namespace k)]
       (cond
         (nil? k-ns) (ctor "_" (name k))
-        (and (not (:auto-resolved? qualifier))
-             (= k-ns (:prefix qualifier))) (ctor (name k))
+        (= k-ns (:prefix qualifier)) (ctor (name k))
         :else k))
     k))
 
@@ -106,10 +105,7 @@
       (- (count s) i)
       (+ col (count s)))))
 
-(defn expand-namespaced-map [zloc k]
-  (when (:auto-resolved? (map-qualifier zloc))
-    (throw (ex-info (str "Can't write key " k " into an auto-resolved namespaced map")
-                    {:key k})))
+(defn expand-namespaced-map [zloc]
   (let [node (z/node zloc)
         {:keys [row col]} (meta node)
         shift (- col (:col (meta (z/node (z/up zloc)))))
@@ -181,7 +177,7 @@
                     (not zloc-comment))]
     (cond
       (not (representable-key? qualifier k))
-      (assoc* (expand-namespaced-map zloc k) k v)
+      (assoc* (expand-namespaced-map zloc) k v)
       empty?
       (-> zloc
           (z/append-child k-node)
@@ -298,7 +294,7 @@
                      (not zloc-comment))]
      (cond
        (not (representable-key? qualifier k))
-       (update* (expand-namespaced-map zloc k) k f args)
+       (update* (expand-namespaced-map zloc) k f args)
        (and empty? (= :vector t))
        (-> zloc
            (z/append-child (node/coerce k))
@@ -384,7 +380,7 @@
         bad-key (when qualifier
                   (some #(when-not (representable-key? qualifier %) %) new-ks))]
     (cond
-      bad-key (replace-keys new-ks (expand-namespaced-map map-zloc bad-key))
+      bad-key (replace-keys new-ks (expand-namespaced-map map-zloc))
       (nil? zloc) (z/root map-zloc)
       :else
       (loop [zloc zloc

@@ -8,9 +8,8 @@ to update EDN while preserving whitespace and comments.
 
 - [#47](https://github.com/borkdude/rewrite-edn/issues/47): Bump rewrite-clj to 1.3.58
 - [#39](https://github.com/borkdude/rewrite-edn/issues/39): `get-in`, `assoc`, `update`, `dissoc`, `keys` and `map-keys` work on namespaced maps like `#:a{:x 1}`
-- `get` and `get-in` find no keys in auto-resolved maps like `#::{:x 1}`
 - New keys in a namespaced map are written so they read back as the given key, e.g. `:y` as `:_/y` in `#:a{}`
-- `assoc`, `update` and `map-keys` write a namespaced map as a plain map to add a key with namespace `_`, and throw for `#::{}`
+- `assoc`, `update` and `map-keys` write a namespaced map as a plain map to add a key with namespace `_`
 - `get` returns the default on an empty map instead of `:empty`
 - `get` and `get-in` return the default on a scalar or list instead of throwing
 - `dissoc` removes the value if `#_` precedes it
