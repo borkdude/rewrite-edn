@@ -73,6 +73,11 @@
           (r/assoc (r/parse-string "[9 8 3 #_99 #_213 7] ;; this is a cool vector") 4 99)
           false
           (catch java.lang.IndexOutOfBoundsException _ true))))
+  (testing "assoc and update throw IndexOutOfBoundsException outside a vector"
+    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs :default)
+                 (r/assoc (r/parse-string "[]") 0 1)))
+    (is (thrown? #?(:clj IndexOutOfBoundsException :cljs :default)
+                 (r/update (r/parse-string "[1]") 1 (constantly 2)))))
   (testing "Repeated assoc"
     (is (= (str "{:a 2\n"
                 " :b 3}")
@@ -239,7 +244,14 @@
          (str (r/map-keys qualify-sym-node
                           (r/parse-string "
 {foo 1
- bar 2}"))))))
+ bar 2}")))))
+  (is (= "{}" (str (r/map-keys identity (r/parse-string "{}")))))
+  (is (= "1 {:b 1}" (str (r/map-keys (constantly :b) (r/parse-string "1 {:a 1}")))))
+  (testing "map-keys calls f once per key"
+    (let [calls (atom 0)]
+      (r/map-keys #(do (swap! calls inc) (if (= :a/x %) :_/x %))
+                  (r/parse-string "#:a{:x 1 :y 2}"))
+      (is (= 2 @calls)))))
 
 (deftest update-deps-test
   (is (= "{:deps {foo/foo {:mvn/version \"0.1.0\"}}}"
@@ -300,7 +312,8 @@
   (is (= "{:a 1}" (str (r/dissoc (r/parse-string "{:a 1 \n\n:b 2}") :b))))
   (is (= "{:a 1\n:c 3}" (str (r/dissoc (r/parse-string "{:a 1\n:b 2\n:c 3}") :b))))
   (is (= "{:deps {foo/bar {}}}" (str (r/update (r/parse-string "{:deps {foo/bar {} foo/baz {}}}")
-                                               :deps #(r/dissoc % 'foo/baz))))))
+                                               :deps #(r/dissoc % 'foo/baz)))))
+  (is (= "{#_:ignored :b 2}" (str (r/dissoc (r/parse-string "{:a #_:ignored 1 :b 2}") :a)))))
 
 (deftest get-test
   (is (= "999" (str (r/get (r/parse-string "{:foo/bar 999 :foo 123}") :foo/bar))))
@@ -312,14 +325,23 @@
   (is (= "99" (str (r/get (r/parse-string "[10 99 100 15]") 1))))
   (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10))))
   (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") 10 nil))))
-  (is (= ":default" (str (r/get (r/parse-string "[10 99 100 15]") 10 :default)))))
+  (is (= ":default" (str (r/get (r/parse-string "[10 99 100 15]") 10 :default))))
+  (is (= "nil" (str (r/get (r/parse-string "[10 99 100 15]") -1))))
+  (is (= "nil" (str (r/get (r/parse-string "{}") :a))))
+  (is (= ":default" (str (r/get (r/parse-string "{}") :a :default))))
+  (is (= "nil" (str (r/get (r/parse-string "(10 99)") 0))))
+  (is (= "nil" (str (r/get (r/parse-string ":k") :a))))
+  (is (= "1" (str (r/get (r/parse-string "#{1 #_2 2}") 1))))
+  (is (= "nil" (str (r/get (r/parse-string "#{1 2}") 3))))
+  (is (= ":default" (str (r/get (r/parse-string "#{}") 3 :default)))))
 
 (deftest keys-test
   (is (= #{:foo/bar :foo 'baz 'foo/baz 1}
          (->> (r/parse-string "{:foo/bar 999 :foo 123 baz 42 foo/baz 23 1 0}")
               r/keys
               (map r/sexpr)
-              (into #{})))))
+              (into #{}))))
+  (is (= [:a] (map r/sexpr (r/keys (r/parse-string "1 {:a 1}"))))))
 
 (deftest get-in-test
   (is (= "999" (str (r/get-in (r/parse-string "{:foo/bar 999 :foo 123}")
@@ -345,7 +367,22 @@
   (is (= "nil" (str (r/get-in (r/parse-string "[10 [99] 100 15]") [1 10]))))
   (is (= "nil" (str (r/get-in (r/parse-string "[10 99 100 15]") [10] nil))))
   (is (= ":default" (str (r/get-in (r/parse-string "[10 99 100 15]")
-                                   [10] :default)))))
+                                   [10] :default))))
+  (is (= "nil" (str (r/get-in (r/parse-string "{:a :k}") [:a :b]))))
+  (is (= ":x" (str (r/get-in (r/parse-string "{:a #{:x}}") [:a :x]))))
+  (is (= ":borkdude.rewrite-edn.impl/not-found"
+         (str (r/get-in (r/parse-string "{:a :borkdude.rewrite-edn.impl/not-found}") [:a] 1)))))
+
+(deftest value-equal-to-key-test
+  (let [nodes (r/parse-string "{:a :b :b 1}")]
+    (is (= "1" (str (r/get nodes :b))))
+    (is (= "{:a :b :b 2}" (str (r/assoc nodes :b 2))))
+    (is (= "{:a :b :b 2}" (str (r/update nodes :b (constantly 2)))))
+    (is (= "{:a :b}" (str (r/dissoc nodes :b)))))
+  (is (= "{:w 1 :x 3 1 2}" (str (r/assoc (r/parse-string "{:w 1 :x 3}") 1 2))))
+  (is (= "{:aliases {:dev :test :test {:x 1}}}"
+         (str (r/assoc-in (r/parse-string "{:aliases {:dev :test :test {}}}")
+                          [:aliases :test :x] 1)))))
 
 (deftest threaded-test
   ;; identation continues to work with a mix of threaded operations
@@ -472,3 +509,75 @@
                  r/parse-string
                  (r/assoc-in [:aliases :neil] {})
                  str))))))
+
+(deftest namespaced-map-test
+  (let [deps "{:deps #:babashka{pods #:git{:url \"x\" :sha \"y\"}}}"
+        nodes (r/parse-string deps)]
+    (testing "get-in reads keys of namespaced maps"
+      (is (= "#:git{:url \"x\" :sha \"y\"}"
+             (str (r/get-in nodes '[:deps babashka/pods]))))
+      (is (= "\"x\"" (str (r/get-in nodes '[:deps babashka/pods :git/url]))))
+      (is (= "nil" (str (r/get-in nodes '[:deps babashka/other]))))
+      (is (= "nil" (str (r/get-in nodes '[:deps pods])))))
+    (testing "assoc-in replaces an existing key"
+      (is (= "{:deps #:babashka{pods #:git{:url \"x\" :sha \"z\"}}}"
+             (str (r/assoc-in nodes '[:deps babashka/pods :git/sha] "z")))))
+    (testing "update-in changes an existing key"
+      (is (= "{:deps #:babashka{pods #:git{:url \"x\" :sha \"yy\"}}}"
+             (str (r/update-in nodes '[:deps babashka/pods :git/sha]
+                               #(str (r/sexpr %) "y"))))))
+    (testing "dissoc removes a key"
+      (is (= "#:git{:url \"x\"}"
+             (str (r/dissoc (r/parse-string "#:git{:url \"x\" :sha \"y\"}") :git/sha))))))
+  (testing "assoc writes :a/y as :y and :y as :_/y in #:a{}"
+    (let [nodes (r/parse-string "#:a{:x 1 :w 0}")]
+      (is (= "#:a{:x 1 :w 0 :y 2}" (str (r/assoc nodes :a/y 2))))
+      (is (= "#:a{:x 1 :w 0 :_/y 2}" (str (r/assoc nodes :y 2))))
+      (is (= "#:a{:x 1 :w 0 :b/y 2}" (str (r/assoc nodes :b/y 2))))
+      (is (= {:a/x 1 :a/w 0 :a/y 2 :y 3 :b/y 4}
+             (-> nodes
+                 (r/assoc :a/y 2)
+                 (r/assoc :y 3)
+                 (r/assoc :b/y 4)
+                 r/sexpr)))))
+  (testing "assoc adds keys to #:a{}"
+    (is (= "#:a{:y 1}" (str (r/assoc (r/parse-string "#:a{}") :a/y 1))))
+    (is (= "#:a{:_/y 1}" (str (r/assoc (r/parse-string "#:a{}") :y 1)))))
+  (testing "update adds a missing key"
+    (is (= "#:a{:x 1 :w 2 :v 5}"
+           (str (r/update (r/parse-string "#:a{:x 1 :w 2}") :a/v (constantly 5))))))
+  (testing "assoc-in creates a path below a namespaced map"
+    (is (= "{:deps #:a{b {:c 1}\n           d 2\n           e {:f 3}}}"
+           (str (r/assoc-in (r/parse-string "{:deps #:a{b {:c 1}\n           d 2}}")
+                            '[:deps a/e :f] 3)))))
+  (testing "conj adds an entry"
+    (is (= "#:a{:x 1 :w 2 :q 3}"
+           (str (r/conj (r/parse-string "#:a{:x 1 :w 2}") [:a/q 3])))))
+  (testing "assoc of :_/z writes #:a{} as a plain map"
+    (is (= "{:a/x 1\n :a/y 2\n :_/z 3}"
+           (str (r/assoc (r/parse-string "#:a{:x 1\n    :y 2}") :_/z 3))))
+    (is (= "{:a/x 1 ;; c\n :a/y 2\n :_/z 3}"
+           (str (r/assoc (r/parse-string "#:a{:x 1 ;; c\n    :y 2}") :_/z 3))))
+    (is (= "{:a/x {:p 1\n       :q 2}\n :a/y {:p 1\n       :q 2}\n :_/z 3}"
+           (str (r/assoc (r/parse-string "#:a{:x {:p 1\n        :q 2}\n    :y {:p 1\n        :q 2}}")
+                         :_/z 3))))
+    (is (= "{\n :a/x 1\n :_/z 3}"
+           (str (r/assoc (r/parse-string "#:a{\n :x 1}") :_/z 3))))
+    (is (= "{:deps {:a/x 1\n        a/y 2\n        :_/z 3}}"
+           (str (r/assoc-in (r/parse-string "{:deps #:a{:x 1\n           y 2}}")
+                            [:deps :_/z] 3)))))
+  (testing "update of :_/z writes #:a{} as a plain map"
+    (is (= "{:a/x 1\n :_/z 3}"
+           (str (r/update (r/parse-string "#:a{:x 1}") :_/z (constantly 3))))))
+  (testing "map-keys to :_/z writes #:a{} as a plain map"
+    (is (= "{:_/z 1}"
+           (str (r/map-keys (constantly :_/z) (r/parse-string "#:a{:x 1}"))))))
+  (testing "get on #:a{} returns nil"
+    (is (= "nil" (str (r/get (r/parse-string "#:a{}") :a/x)))))
+  (testing "keys returns qualified keys"
+    (is (= #{:a/x :a/y}
+           (set (map r/sexpr (r/keys (r/parse-string "#:a{:x 1 :y 2}")))))))
+  (testing "map-keys writes :y as :_/y in #:a{}"
+    (is (= "#:a{:z 1 :_/y 2}"
+           (str (r/map-keys #(if (= :a/x %) :a/z :y)
+                            (r/parse-string "#:a{:x 1 :y 2}")))))))
