@@ -6,7 +6,7 @@ to update EDN while preserving whitespace and comments.
 
 ## Unreleased
 
-- [#47](https://github.com/borkdude/rewrite-edn/issues/47): Bump rewrite-clj to 1.3.58
+- [#47](https://github.com/borkdude/rewrite-edn/issues/47): Bump rewrite-clj to 1.3.59
 - [#39](https://github.com/borkdude/rewrite-edn/issues/39): Support namespaced maps like `#:a{:x 1}`
 - Fix `get`, `assoc`, `update` and `dissoc` when a map value equals the key
 - Fix edge cases with empty maps, sets and `#_` forms
