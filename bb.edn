@@ -1,2 +1,25 @@
-{:tasks
- {test:clj (apply clojure "-M:test" *command-line-args*)}}
+{:deps {io.github.babashka/deps-deploy {:mvn/version "0.0.1"}}
+ :paths ["src" "bb"]
+ :tasks
+ {:requires ([clojure.string :as str]
+             [utils])
+
+  test:clj (apply clojure "-M:test" *command-line-args*)
+
+  bump-release {:doc "Bump release counter and turn the Unreleased changelog header into the new version"
+                :task (let [changelog (slurp "CHANGELOG.md")]
+                        (when-not (str/includes? changelog "## Unreleased")
+                          (throw (ex-info "CHANGELOG.md has no ## Unreleased header" {})))
+                        (utils/bump-version)
+                        (let [new-version (utils/format-version)]
+                          (spit "CHANGELOG.md" (str/replace-first changelog
+                                                                 "## Unreleased"
+                                                                 (str "## " new-version)))
+                          (shell "git add version.edn CHANGELOG.md")
+                          (shell "git commit -m" (str "v" new-version))
+                          (shell "git tag" (str "v" new-version))
+                          (shell "git push --tags")))}
+
+  publish {:doc "Publish to clojars, then push"
+           :extra-paths ["."]
+           :exec-fn tasks/publish}}}
