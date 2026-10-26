@@ -581,3 +581,23 @@
     (is (= "#:a{:z 1 :_/y 2}"
            (str (r/map-keys #(if (= :a/x %) :a/z :y)
                             (r/parse-string "#:a{:x 1 :y 2}")))))))
+
+(deftest meta-test
+  (let [nodes (r/parse-string "{:deps ^{:x 1} {a/b {:mvn/version \"1\"}}}")]
+    (testing "get-in reads a key below ^{:x 1}"
+      (is (= "\"1\"" (str (r/get-in nodes '[:deps a/b :mvn/version])))))
+    (testing "assoc-in adds a key below ^{:x 1} and keeps the metadata"
+      (is (= "{:deps ^{:x 1} {a/b {:mvn/version \"1\"}\n                c/d 2}}"
+             (str (r/assoc-in nodes '[:deps c/d] 2)))))
+    (testing "update-in changes a key below ^{:x 1}"
+      (is (= "{:deps ^{:x 1} {a/b {:mvn/version \"2\"}}}"
+             (str (r/assoc-in nodes '[:deps a/b :mvn/version] "2")))))
+    (testing "dissoc removes a key below ^{:x 1}"
+      (is (= "{:deps ^{:x 1} {}}"
+             (str (r/update nodes :deps #(r/dissoc % 'a/b)))))))
+  (testing "assoc writes into a map with ^:a ^:b"
+    (is (= "^:a ^:b {:x 1 :w 0 :y 2}"
+           (str (r/assoc (r/parse-string "^:a ^:b {:x 1 :w 0}") :y 2)))))
+  (testing "keys reads and conj appends below ^:a"
+    (is (= [:x] (map r/sexpr (r/keys (r/parse-string "^:a {:x 1}")))))
+    (is (= "^:a [1 2]" (str (r/conj (r/parse-string "^:a [1]") 2))))))

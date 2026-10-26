@@ -33,9 +33,14 @@
     (-> zloc z/down z/rightmost)
     zloc))
 
+(defn enter-meta [zloc]
+  (if (#{:meta :meta*} (some-> zloc z/tag))
+    (recur (-> zloc z/down z/rightmost))
+    zloc))
+
 (defn find-target [forms tags]
   (enter-namespaced-map
-   (z/skip z/right #(not (tags (z/tag %))) (z/of-node forms))))
+   (z/skip z/right #(not (tags (z/tag %))) (enter-meta (z/of-node forms)))))
 
 (defn map-qualifier [zloc]
   (let [parent (z/up zloc)]
@@ -156,7 +161,7 @@
   (update forms k (constantly v) nil))
 
 (defn lookup [node k]
-  (let [zloc (enter-namespaced-map (z/of-node node))
+  (let [zloc (enter-namespaced-map (enter-meta (z/of-node node)))
         elems (significant-children zloc)]
     (case (z/tag zloc)
       :map (some (fn [[k' v]] (when (= k (node/sexpr k')) v)) (partition 2 elems))
@@ -276,7 +281,7 @@
   (into () (take-nth 2) (significant-children (find-target forms #{:map :namespaced-map}))))
 
 (defn conj* [forms v]
-  (let [zloc (z/of-node forms)]
+  (let [zloc (enter-meta (z/of-node forms))]
     (if (nil-node? (z/node zloc))
       (z/root (z/replace zloc (node/coerce (list v))))
       (case (z/tag zloc)
