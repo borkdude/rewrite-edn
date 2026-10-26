@@ -7,7 +7,7 @@
 (def lib 'borkdude/rewrite-edn)
 (def version (utils/format-version))
 (def class-dir "target/classes")
-(def basis (b/create-basis {:project "deps.edn"}))
+(def basis (b/create-basis {:project "deps.edn" :aliases [:pom]}))
 (def jar-file (format "target/%s-%s.jar" (name lib) version))
 
 (defn clean [_]
