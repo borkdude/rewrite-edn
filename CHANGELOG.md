@@ -4,6 +4,10 @@
 [rewrite-clj](https://github.com/clj-commons/rewrite-clj) with common operations
 to update EDN while preserving whitespace and comments.
 
+## Unreleased
+
+- [neil#239](https://github.com/babashka/neil/issues/239): Read and update maps with metadata like `^{:x 1} {:a 1}`
+
 ## 0.6.10
 
 - [#47](https://github.com/borkdude/rewrite-edn/issues/47): Bump rewrite-clj to 1.3.59
