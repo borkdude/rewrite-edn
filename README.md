@@ -16,6 +16,8 @@ Currently implemented:
 - `parse-string`
 - `sexpr`
 - `get`
+- `get-in`
+- `reader-tag`
 - `keys`
 - `assoc`
 - `assoc-in`
@@ -89,6 +91,21 @@ and this script:
 ```
 
 Also see [examples](examples).
+
+### Update a tagged literal
+
+Use a `reader-tag` selector to enter an existing ordinary tagged literal:
+
+``` clojure
+(def config (r/parse-string "{:foo #profile {:prod 1 :dev 2}}"))
+(str (r/assoc-in config [:foo (r/reader-tag 'profile) :prod] false))
+;;=> "{:foo #profile {:prod false :dev 2}}"
+```
+
+The selector matches the tag symbol, including its namespace, and preserves the
+tag, comments and spacing. It does not invoke data readers or evaluate the tagged
+value. A missing or mismatched tag returns the lookup default; an update throws
+rather than creating a tagged literal. Ordinary map keys remain unchanged.
 
 # License
 

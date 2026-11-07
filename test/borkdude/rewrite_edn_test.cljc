@@ -2,6 +2,89 @@
   (:require [borkdude.rewrite-edn :as r]
             [clojure.test :as t :refer [deftest testing is]]))
 
+(deftest reader-tag-test
+  (let [profile (r/reader-tag 'profile)
+        source "{:data {:foo #profile {:prod 1 :dev 2}}}"
+        nodes (r/parse-string source)]
+    (is (= profile (r/reader-tag 'profile)))
+    (is (not= profile 'profile))
+    (is (not= profile {:tag 'profile}))
+    (is (= "{:prod 1 :dev 2}" (str (r/get-in nodes [:data :foo profile]))))
+    (is (= "{:data {:foo #profile {:prod false :dev 2}}}"
+           (str (r/assoc-in nodes [:data :foo profile :prod] false))))
+    (is (= "{:data {:foo #profile {:prod 2 :dev 2}}}"
+           (str (r/update-in nodes [:data :foo profile :prod]
+                             (comp inc r/sexpr)))))
+    (is (= "{:data {:foo #profile {:prod 1 :dev 2}}}" (str nodes)))
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs :default)
+                 (r/reader-tag :profile))))
+  (testing "selectors unwrap only matching ordinary tags; nil and false are values"
+    (doseq [value ["nil" "false" "1"]]
+      (let [nodes (r/parse-string (str "#app/profile " value))
+            selector (r/reader-tag 'app/profile)]
+        (is (= value (str (r/get nodes selector :missing))))
+        (is (= "#app/profile false" (str (r/assoc nodes selector false))))
+        (is (= ":missing" (str (r/get nodes (r/reader-tag 'profile) :missing))))))
+    (doseq [source ["nil" "{}" "{profile 1 :tag profile}" "[1]"
+                    "#other {:prod 1}" "#_(#profile 1) {:prod 2}"]]
+      (let [nodes (r/parse-string source)
+            selector (r/reader-tag 'profile)]
+        (is (= ":missing" (str (r/get nodes selector :missing))))
+        (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs :default)
+                     (r/assoc nodes selector 2)))
+        (is (= source (str nodes)))))
+    (is (= ":missing"
+           (str (r/get-in (r/parse-string "{}")
+                          [:missing (r/reader-tag 'profile)] :missing))))
+    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs :default)
+                 (r/assoc-in (r/parse-string "{}")
+                             [:missing (r/reader-tag 'profile) :prod] 2)))
+    (let [calls (atom 0)]
+      (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs :default)
+                   (r/update (r/parse-string "#other 1") (r/reader-tag 'profile)
+                             (fn [_] (swap! calls inc) 2))))
+      (is (zero? @calls))))
+  (testing "reader conditionals and eval forms are not ordinary tagged literals"
+    (doseq [[source tag] [["#?(:clj 1 :cljs 2)" '?]
+                          ["#?@(:clj [1] :cljs [2])" (symbol "?@")]
+                          ["#=(throw (Exception.))" '=]]]
+      (let [nodes (r/parse-string source)
+            selector (r/reader-tag tag)]
+        (is (= ":missing" (str (r/get nodes selector :missing))))
+        (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs :default)
+                     (r/assoc nodes selector 2)))
+        (is (= source (str nodes))))))
+  (testing "comments, metadata, siblings, namespaced maps and repeated edits"
+    (let [nodes (r/parse-string
+                 "{:x ^:marked #profile ; keep tag comment\n  #:app{:v [1 2]} :tail 9}")
+          path [:x (r/reader-tag 'profile) :app/v 1]
+          updated (r/assoc-in nodes path 20)]
+      (is (= "{:x ^:marked #profile ; keep tag comment\n  #:app{:v [1 20]} :tail 9}"
+             (str updated)))
+      (is (= "20" (str (r/get-in updated path))))
+      (is (= "{:x ^:marked #profile ; keep tag comment\n  #:app{:v [1 20]} :tail 10}"
+             (str (r/assoc updated :tail 10))))))
+  (testing "plain keys remain plain keys and tag selectors compose"
+    (let [nodes (r/parse-string "{profile 1 :tag 2 :x #outer #inner [3]}")]
+      (is (= "1" (str (r/get nodes 'profile))))
+      (is (= "2" (str (r/get nodes :tag))))
+      (is (= "{profile 1 :tag 2 :x #outer #inner [4]}"
+             (str (r/assoc-in nodes
+                              [:x (r/reader-tag 'outer) (r/reader-tag 'inner) 0] 4))))))
+  #?(:clj
+     (testing "unknown data readers and read-eval are never invoked"
+       (let [calls (atom 0)
+             forbidden (fn [& _] (swap! calls inc) (throw (ex-info "reader invoked" {})))]
+         (binding [*data-readers* {'profile forbidden}
+                   *default-data-reader-fn* forbidden
+                   *read-eval* false]
+           (let [nodes (r/parse-string "{:x #profile {:v false} :y #unknown nil}")
+                 path [:x (r/reader-tag 'profile) :v]]
+             (is (= "false" (str (r/get-in nodes path))))
+             (is (= "{:x #profile {:v nil} :y #unknown nil}"
+                    (str (r/assoc-in nodes path nil)))))
+           (is (= 0 @calls)))))))
+
 (deftest assoc-test
   (testing "Base case"
     (is (= "{:a 1}"

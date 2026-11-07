@@ -42,6 +42,22 @@
   (enter-namespaced-map
    (z/skip z/right #(not (tags (z/tag %))) (enter-meta (z/of-node forms)))))
 
+(defrecord ReaderTag [tag])
+
+(defn reader-tag [tag]
+  (when-not (symbol? tag)
+    (throw (ex-info "Reader tag must be a symbol" {:tag tag})))
+  (->ReaderTag tag))
+
+(defn reader-value-loc [zloc selector]
+  ;; rewrite-clj also represents reader conditionals as :reader-macro nodes.
+  (when (and (= :reader-macro (z/tag zloc))
+             (not (#{"?" "?@"} (str (:tag selector)))))
+    (let [tag-loc (some-> zloc z/down skip-right)]
+      (when (and (= :token (some-> tag-loc z/tag))
+                 (= (:tag selector) (z/sexpr tag-loc)))
+        (some-> tag-loc z/right skip-right)))))
+
 (defn map-qualifier [zloc]
   (let [parent (z/up zloc)]
     (when (= :namespaced-map (z/tag parent))
@@ -163,11 +179,13 @@
 (defn lookup [node k]
   (let [zloc (enter-namespaced-map (enter-meta (z/of-node node)))
         elems (significant-children zloc)]
-    (case (z/tag zloc)
-      :map (some (fn [[k' v]] (when (= k (node/sexpr k')) v)) (partition 2 elems))
-      :set (some #(when (= k (node/sexpr %)) %) elems)
-      :vector (when (and (integer? k) (< -1 k (count elems))) (nth elems k))
-      nil)))
+    (if (instance? ReaderTag k)
+      (some-> (reader-value-loc zloc k) z/node)
+      (case (z/tag zloc)
+        :map (some (fn [[k' v]] (when (= k (node/sexpr k')) v)) (partition 2 elems))
+        :set (some #(when (= k (node/sexpr %)) %) elems)
+        :vector (when (and (integer? k) (< -1 k (count elems))) (nth elems k))
+        nil))))
 
 (defn get [node k default]
   (or (lookup node k) (node/coerce default)))
@@ -221,12 +239,18 @@
               z/root))))))
 
 (defn update* [forms k f args]
-  (let [zloc (find-target forms #{:token :map :vector :namespaced-map})
-        zloc (cond-> zloc
-               (nil-node? (z/node zloc)) (z/replace (node/coerce {})))]
-    (if (= :vector (z/tag zloc))
-      (update-vector zloc k f args)
-      (update-map zloc k f args))))
+  (if (instance? ReaderTag k)
+    (let [zloc (enter-meta (z/of-node forms))]
+      (if-let [value-loc (reader-value-loc zloc k)]
+        (replace-with value-loc f args)
+        (throw (ex-info "Reader tag selector requires a matching tagged literal"
+                        {:tag (:tag k) :node-tag (z/tag zloc)}))))
+    (let [zloc (find-target forms #{:token :map :vector :namespaced-map})
+          zloc (cond-> zloc
+                 (nil-node? (z/node zloc)) (z/replace (node/coerce {})))]
+      (if (= :vector (z/tag zloc))
+        (update-vector zloc k f args)
+        (update-map zloc k f args)))))
 
 (defn update
   ([forms k f]

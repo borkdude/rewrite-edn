@@ -15,6 +15,15 @@
   [node]
   (node/sexpr node))
 
+(defn reader-tag
+  "Returns an opaque path selector for the value of an ordinary tagged literal.
+  tag must be a symbol, e.g. (reader-tag 'profile). Use with get, get-in,
+  assoc, assoc-in, update or update-in. A selector matches only that literal's
+  tag, without invoking a data reader. Missing or mismatched tags return the
+  lookup default; updates require a matching existing literal."
+  [tag]
+  (impl/reader-tag tag))
+
 (defn assoc
   "Associates k to v in node (which may be a forms node as returned by parse-string or map node).
   Both k and v are coerced into nodes."
@@ -30,13 +39,15 @@
 (defn get-in
   "Returns the value in a nested associative structure,
   where ks is a sequence of keys. Returns nil if the key
-  is not present, or the not-found value if supplied."
+  is not present, or the not-found value if supplied. A reader-tag selector
+  in ks enters the value of a matching ordinary tagged literal."
   ([node ks] (get-in node ks (node/coerce nil)))
   ([node ks not-found]
    (impl/get-in node ks not-found)))
 
 (defn assoc-in
-  "Associates value under keys ks in map node with v."
+  "Associates value under keys ks in map node with v.
+  A reader-tag selector in ks requires a matching existing tagged literal."
   [node ks v]
   (impl/assoc-in node ks v))
 
@@ -48,7 +59,8 @@
 
 (defn update-in
   "Updates value under keys ks in map node. Function f receives
-  node. Return value is coerced into node."
+  node. Return value is coerced into node. A reader-tag selector in ks
+  requires a matching existing tagged literal."
   [node ks f & args]
   (impl/update-in node ks f args))
 
